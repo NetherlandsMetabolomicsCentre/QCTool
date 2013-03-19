@@ -1,18 +1,38 @@
-<div class="nav" role="navigation">
-    <ul>
-        <li><a class="home" href="${createLink(uri: '/')}"><g:message code="default.home.label"/></a></li>
-    </ul>
-</div>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="layout" content="qctool"/>
+    </head>
+    <body>
+        <table>
+            <tr>
+                <td valign="top" style="border: thin solid #dcdcdc; padding: 25px; width: 300px">
 
-<g:form name="createProject" action="index">
-    Project Name:<g:textField name="name" value="${params.name ?: ''}"/>
-    <br>
-    Project Description:<g:textArea name="description" value="${params.description ?: ''}" rows="5" cols="40"/>
-    <g:submitButton name="submit" value="createNewProject"/>
-</g:form>
+                    <strong>new project</strong>
+                    <g:form name="createProject" action="index">
+                        <table>
+                            <tr>
+                                <td style="padding: 5px;" align="right" valign="top" nowrap>Project Name</td><td><g:textField name="name" value="${params.name ?: ''}"/></td>
+                            </tr><tr>
+                                <td style="padding: 5px;" align="right" valign="top" nowrap>Project Description</td><td><g:textArea name="description" value="${params.description ?: ''}"/></td>
+                            </tr>
+                            <tr>
+                                <td>&nbsp;</td><td><g:submitButton name="submit" class="btn" value="create"/></td>
+                            </tr>
+                        </table>
+                    </g:form>
 
-<ul>
-    <g:each in="${projects}" var="project">
-        <li><g:link action="view" id="${project.id}">${project}</g:link></li>
-    </g:each>
-</ul>
+                </td><td valign="top" style="width:100%; padding: 0 25px;">
+
+                    <h2>Projects</h2>
+                    <ul>
+                        <g:each in="${projects}" var="project">
+                            <li><g:link action="view" id="${project.id}">${project}</g:link></li>
+                        </g:each>
+                    </ul>
+
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

@@ -8,6 +8,10 @@ class Project {
     Date dateCreated
     Date lastUpdated
 
+    static mapping = {
+       description type: 'text'
+    }
+
     static constraints = {
         description(nullable: true, blank: true)
     }

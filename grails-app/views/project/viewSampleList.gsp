@@ -1,15 +1,8 @@
-<%--
-  Created by IntelliJ IDEA.
-  User: ishtiaq
-  Date: 2/7/13
-  Time: 10:19 PM
-  To change this template use File | Settings | File Templates.
---%>
-
 <%@ page contentType="text/html;charset=UTF-8" %>
 <html>
 <head>
     <title>${project.name}</title>
+    <meta name="layout" content="qctool"/>
     <r:require modules="jquery"/>
     <r:layoutResources/>
     <script src="${resource(dir: 'js', file: 'jquery.handsontable.full.js')}"></script>
@@ -70,10 +63,7 @@
         )
         ;
     }
-    <g:remoteFunction controller="project" action="listSamples" id="${project?.id}"
-    onSuccess="callbackGrid(data)"
-    />
-
 </script>
+<g:remoteFunction controller="project" action="listSamples" id="${project?.id}" onSuccess="callbackGrid(data)" />
 </body>
 </html>

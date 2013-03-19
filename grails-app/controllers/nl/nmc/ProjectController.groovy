@@ -19,10 +19,12 @@ class ProjectController {
     }
 
     def index() {
-        if (params?.submit == "createNewProject") {
+        if (params?.submit) {
             def project = new Project(params)
             if (!project.save(flush: true)) {
                 flash.message = "was unable to save the Project - ${params}"
+            } else {
+                redirect(action: "view", id: project.id)
             }
         }
         [projects: Project.list()]
