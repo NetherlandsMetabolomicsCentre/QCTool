@@ -1,4 +1,4 @@
-QCTool
+LC-MS/MS Quality Control and Data Correction Tool
 ======
 
-QCTool
+QCTool is an Online LC-MS/MS Quality Control and Data Correction Tool
