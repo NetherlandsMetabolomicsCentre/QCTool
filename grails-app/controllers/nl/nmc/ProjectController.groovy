@@ -72,7 +72,7 @@ class ProjectController {
 
         if (!uploadedFiles.isEmpty() && project) {
 
-            uploadedFiles.each {  uploadedfile ->
+            uploadedFiles.each { uploadedfile ->
 
                 //determine extension of uploaded file
                 def filename = uploadedfile.getOriginalFilename().toLowerCase()
@@ -134,6 +134,19 @@ class ProjectController {
 
         //return to where you came from...
         redirect(action: "view", params: params)
+    }
+
+    def showFile() {
+        def project = Project.get(params.id) ?: null
+        def data = Data.get(params.data) ?: null
+        if (!project.equals(null) && !data.equals(null) && data.project == project) {
+            def dataFile = new File(project.nameOfDirectory() + File.separator + data.filename)
+            render dataFile.text
+        } else {
+            response.status = 404 //Not Found
+            render """This ID="${params}" does not exist. Request must include Project ID"""
+        }
+
     }
 
     def prepareQCReport() {
@@ -226,7 +239,7 @@ class ProjectController {
                         text: ant.project.properties.cmdOut,
                         error: ant.project.properties.cmdErr,
                         exitValue: ant.project.properties.exitValue as Integer,
-                        toString: {text}
+                        toString: { text }
                 )
                 println ant.project.properties.cmdOut
                 println ant.project.properties.cmdErr
@@ -290,7 +303,7 @@ class ProjectController {
                 render result as JSON
                 */
             } else
-                println "Error: Project and Setting doesnot crospond to each other"
+                println "Error: Project and Setting doesn't correspond to each other"
         } else {
             println("Error: Either one of the Project, Setting or Data files are missing... dump:${project}, ${setting}, ${dataList}")
         }
@@ -306,47 +319,77 @@ class ProjectController {
         def project = Project.get(params.id) ?: null
         def dataList = project?.datas
 
-        if (params?.submit == "Proceed to Report Settings" && project.equals(null) && dataList) {
+        if (params?.submit == "Proceed to Report Settings" && !project.equals(null) && dataList) {
             def folderLocation = grailsApplication.config.dataFolder
-            folderLocation = folderLocation.replaceAll(/"/, '')
+            if (folderLocation) {
+                folderLocation = folderLocation.replaceAll(/"/, '')
 
-            // add measurements files to folder stature
-            def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
-            def projectFolder = new File("${projectFolderLocation}")
-            projectFolder.mkdirs()
-            def inputFolder = new File("${projectFolderLocation + File.separator }input")
-            inputFolder.mkdir()
-            def meaFolder = new File("${projectFolderLocation + File.separator}mea")
-            meaFolder.mkdir()
-            def outputFolder = new File("${projectFolderLocation + File.separator}output")
-            outputFolder.mkdir()
+                // add measurements files to folder stature
+                def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
+                def projectFolder = new File("${projectFolderLocation}")
+                projectFolder.mkdirs()
+                def inputFolder = new File("${projectFolderLocation + File.separator }input")
+                inputFolder.mkdir()
+                def meaFolder = new File("${projectFolderLocation + File.separator}mea")
+                meaFolder.mkdir()
+                def outputFolder = new File("${projectFolderLocation + File.separator}output")
+                outputFolder.mkdir()
 
-            def ant = new AntBuilder()
-            dataList.each {
-                ant.copy(file: new File(project.nameOfDirectory() + File.separator + it.filename), tofile: new File("${meaFolder}" + File.separator + it.name), overwrite: true)
+                def mea = []
+                def ant = new AntBuilder()
+                dataList.each {
+                    ant.copy(file: new File(project.nameOfDirectory() + File.separator + it.filename), tofile: new File("${meaFolder}" + File.separator + it.name), overwrite: true)
+                    mea.add(it.name)
+                }
+
+                def job = new QCJob(project: project, inputFolder: "${inputFolder}", outputFolder: "${outputFolder}",
+                        meaFolder: "${meaFolder}",
+                        code: "None",  //NMC-Code
+                        name: project.name,
+                        meaNames: ["*.*"] as String[],
+                        type: 'normal',    //normal  or validation
+                        mailTo: "me@domain.nl")
+                //job.setMeaNames(mea as String[])
+                job.save(flush: true)
+                def result = runMATLAB("[~,~,~]=generate_sampleist(${job.id})", projectFolder)
+                if (result.exitValue == 0) {
+                    /**
+                     *  successful??
+                     *  clear the old sample list
+                     */
+                    project.getSamples()?.each { s ->
+                        s.delete(flush: true)
+                    }
+                    /**
+                     *  load newly generated sample list
+                     */
+                    loadSampleList(project, "${inputFolder}")
+
+                    /**
+                     * load uncorrected data structure
+                     * unCorrectedData.json
+                     */
+                    //def dataFile = new File("${outputFolder}" + File.separator + "unCorrectedData.json")
+                    //println(dataFile.text)
+                    //def unCorrectedData = new JSON(dataFile.text)    not working?? investigate...
+                    //println(unCorrectedData)
+
+                    /**
+                     * load job log
+                     * joblog.json
+                     */
+                }
+                println result.text
+                println result.error
+            } else {
+                println("Error: Application Config is not loaded properly... dump:dataFolder->${grailsApplication.config.dataFolder}, grailsApplication.config->${grailsApplication.config}")
             }
-
-            def job = new QCJob(project: project, inputFolder: "${inputFolder}", outputFolder: "${outputFolder}",
-                    meaFolder: "${meaFolder}",
-                    code: "None",
-                    name: project.name,
-                    meaNames: "*.*",
-                    mailTo: "i.ahmad@uva.nl")
-
-            job.save(flush: true)
-
-            render job as JSON
-            return
-
-            def result = runMATLAB("generate_sampleist()", projectFolder)
-            println result.text
-            println result.error
 
         } else {
             println("Error: Either one of the Project or Data files are missing... dump:${project}, ${dataList}")
         }
 
-        redirect(action: "index", params: [])
+        redirect(action: "view", params: params)
     }
 
     def listQCJob = {
@@ -360,7 +403,7 @@ class ProjectController {
         } else {
             def project = job.project ?: null
             def dataList = project?.datas
-            if (project.equals(null) && dataList) {
+            if (!project.equals(null) && dataList) {
                 render job as JSON
             } else {
                 response.status = 404 //Not Found
@@ -391,7 +434,39 @@ class ProjectController {
         }
     }
 
-    def jsonProject() {
+    def saveSample = {
+        if (!params?.id) {
+        }
+        def project = Project.get(params.id) ?: null
+        if (project) {
+            def sample = JSON.parse(params.sample)
+            def s = Sample.get(jsonSamp.id)
+        }
+    }
+    def saveSamples = {
+        if (!params?.id) {
+        }
+        def project = Project.get(params.id) ?: null
+        if (project) {
+            def samps = JSON.parse(params.samples)
+            samps.each { jsonSamp ->
+                if (jsonSamp && jsonSamp.id) {
+                    def s = Sample.get(jsonSamp.id)
+                    def newSample = new Sample(jsonSamp)
+                    Sample sample
+                    bindData(sample, jsonSamp)
+                    if (s.equals(sample)) {
+                        println "not modified"
+                    } else {
+                        println "modified"
+                    }
+                    println(sample.errors)
+                }
+            }
+        }
+    }
+
+    def jsonProject = {
         if (!params?.id) {
             response.status = 404 //Not Found
         }
@@ -427,7 +502,7 @@ class ProjectController {
                 text: ant.project.properties.cmdOut,
                 error: ant.project.properties.cmdErr,
                 exitValue: ant.project.properties.exitValue as Integer,
-                toString: {text}
+                toString: { text }
         )
         if (result.exitValue != 0) {
             throw new Exception("""command failed with ${result.exitValue}
@@ -437,5 +512,31 @@ class ProjectController {
 
         }
         return result
+    }
+
+    private loadSampleList(Project project, String folderLocation) {
+        def importer = new SampleListImporter(folderLocation + File.separator + "samplelist.xlsx")
+        def sampleListMap = importer.getSampleList()
+        sampleListMap.each { Map sampleParams ->
+            new Sample(project: project,
+                    sampleOrder: sampleParams['sampleOrder'] as int,
+                    name: sampleParams['name'],
+                    sampleID: sampleParams['sampleID'],
+                    level: sampleParams['level'],
+                    outlier: "${sampleParams['outlier'] as int}".toBoolean(),
+                    suspect: "${sampleParams['suspect'] as int}".toBoolean(),
+                    comment: sampleParams['comment'],
+                    batch: sampleParams['batch'] as int,
+                    preparation: sampleParams['preparation'] as int,
+                    injection: sampleParams['injection'] as int,
+                    sample: "${sampleParams['sample'] as int}".toBoolean(),
+                    qc: "${sampleParams['qc'] as int}".toBoolean(),
+                    cal: "${sampleParams['cal'] as int}".toBoolean(),
+                    blank: "${sampleParams['blank'] as int}".toBoolean(),
+                    wash: "${sampleParams['wash'] as int}".toBoolean(),
+                    sst: "${sampleParams['sst']}".toBoolean(),
+                    proc: "${sampleParams['proc'] as int}".toBoolean()
+            ).save(flush: true)
+        }
     }
 }

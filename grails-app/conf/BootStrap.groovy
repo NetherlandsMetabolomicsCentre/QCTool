@@ -59,6 +59,7 @@ class BootStrap {
                         out_path: it.outputFolder,
                         mea_path: it.meaFolder,
                         NMCcode: it.code,
+                        type: it.type,
                         JobName: it.name ?: it.project.name,
                         MeaNames: it.meaNames,
                         MailTo: it.mailTo

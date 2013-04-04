@@ -12,7 +12,7 @@
 // }
 grails.config.locations = [
         "classpath:default.properties",
-        "file:${userHome}/.${appName}/${grails.util.GrailsUtil.environment}.properties"
+        "file:${userHome}/.${appName}/${grails.util.Environment.current.name}.properties"
 ]
 
 grails.project.groupId = appName // change this to alter the default package name and Maven publishing destination

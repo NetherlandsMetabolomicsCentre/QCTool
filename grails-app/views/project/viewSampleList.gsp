@@ -4,6 +4,7 @@
     <title>${project.name}</title>
     <meta name="layout" content="qctool"/>
     <r:require modules="jquery"/>
+    <g:javascript library="application"/>
     <r:layoutResources/>
     <script src="${resource(dir: 'js', file: 'jquery.handsontable.full.js')}"></script>
     <link rel="stylesheet" media="screen" href="${resource(dir: 'css', file: 'jquery.handsontable.full.css')}"
@@ -60,10 +61,9 @@
 
                     ]
                 }
-        )
-        ;
+        );
     }
+    <g:remoteFunction controller="project" action="listSamples" id="${project?.id}" onSuccess="callbackGrid(data)"/>
 </script>
-<g:remoteFunction controller="project" action="listSamples" id="${project?.id}" onSuccess="callbackGrid(data)" />
 </body>
 </html>
