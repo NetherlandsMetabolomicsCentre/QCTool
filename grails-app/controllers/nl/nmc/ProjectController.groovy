@@ -2,6 +2,7 @@ package nl.nmc
 
 import grails.converters.JSON
 import nl.nmc.exporters.JobListExporter
+import nl.nmc.exporters.SampleListExporter
 import nl.nmc.general.config.AdditiveStabilizer
 import nl.nmc.general.config.GeneralConfig
 import nl.nmc.general.config.Matrix
@@ -259,6 +260,7 @@ class ProjectController {
                         s.delete(flush: true)
                     }
                     def importer = new SampleListImporter("${projectFolderLocation + File.separator }input" + File.separator + "samplelist.xlsx")
+                    importer.excelImportService = grailsApplication.getMainContext().getBean("excelImportService")
                     def sampleListMap = importer.getSampleList()
                     sampleListMap.each { Map sampleParams ->
                         new Sample(project: project,
@@ -443,11 +445,71 @@ class ProjectController {
             def s = Sample.get(jsonSamp.id)
         }
     }
-    def saveSamples = {
+
+    def viewGraph = {
         if (!params?.id) {
+            return
         }
         def project = Project.get(params.id) ?: null
         if (project) {
+            def folderLocation = grailsApplication.config.dataFolder
+            folderLocation = folderLocation.replaceAll(/"/, '')
+            def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
+            def jsonFile = new File("${projectFolderLocation + File.separator }output" + File.separator + "options.json")
+            if (jsonFile.exists()) {
+                def json = JSON.parse(new FileInputStream(jsonFile), "UTF-8")
+                [project: project, MatlabObjX: json]
+            } else {
+                redirect(action: "view", params: params)
+            }
+        }
+    }
+
+    def addCorrectionSetting = {
+        def project = Project.get(params.id) ?: null
+        if (params?.submit == "Correct & Download" && project) {
+            def optBlank = params.blank ?: null
+            def optQc = params.qc ?: null
+            def optQcInter = params.qcinter ?: null
+            def folderLocation = grailsApplication.config.dataFolder
+            folderLocation = folderLocation.replaceAll(/"/, '')
+            def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
+            def jsonFile = new File("${projectFolderLocation + File.separator }output" + File.separator + "options.json")
+            if (jsonFile.exists() && optBlank && optQc && optQcInter) {
+                def json = JSON.parse(new FileInputStream(jsonFile), "UTF-8")
+                json.opts.blank = (optBlank as Integer) / 100
+                json.opts.qc = optQc
+                json.opts.qcinter = optQcInter
+                def converter = json as JSON
+                converter.render(new FileWriter(jsonFile))
+                def result = runMATLAB("[~]=export_data(${project.getQcJobs()[0].id})", new File("${projectFolderLocation}"))
+                if (result.exitValue == 0) {
+
+                }
+                println result.text
+                println result.error
+            } else {
+                flash.message = "was unable to save the Setting - ${params}"
+            }
+        }
+        redirect(action: "view", params: [id: params.id])
+    }
+
+    def saveSamples = {
+        if (!params?.id) {
+            return
+        }
+        def project = Project.get(params.id) ?: null
+        if (project) {
+            def folderLocation = grailsApplication.config.dataFolder
+            folderLocation = folderLocation.replaceAll(/"/, '')
+            def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
+
+            def exporter = new SampleListExporter("${projectFolderLocation + File.separator }input" + File.separator + "samplelist.xlsx")
+            exporter.excelExportService = grailsApplication.getMainContext().getBean("excelImportService")
+            exporter.export(project, new FileOutputStream(new File("${projectFolderLocation + File.separator }input" + File.separator + "samplelist_webSaved.xlsx")))
+            redirect(action: "view", params: params)
+            /*
             def samps = JSON.parse(params.samples)
             samps.each { jsonSamp ->
                 if (jsonSamp && jsonSamp.id) {
@@ -463,6 +525,7 @@ class ProjectController {
                     println(sample.errors)
                 }
             }
+            */
         }
     }
 
@@ -516,6 +579,7 @@ class ProjectController {
 
     private loadSampleList(Project project, String folderLocation) {
         def importer = new SampleListImporter(folderLocation + File.separator + "samplelist.xlsx")
+        importer.excelImportService = grailsApplication.getMainContext().getBean("excelImportService")
         def sampleListMap = importer.getSampleList()
         sampleListMap.each { Map sampleParams ->
             new Sample(project: project,
