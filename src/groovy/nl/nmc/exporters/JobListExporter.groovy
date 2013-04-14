@@ -44,8 +44,7 @@ class JobListExporter extends AbstractExcelImporter {
     def void writeRow(rowMap) {
         // First create the row at bottom of sheet
         sheet.createRow(sheet.getLastRowNum() + 1)
-        def rowIdx = sheet.getLastRowNum()
-        rowIdx = rowIdx + 1
+        def rowIdx = sheet.getLastRowNum() + 1
 
         // clear cellMap of last insert
         CONFIG_DCL_JOBLIST_COLUMN_MAP.cellMap = [:]
