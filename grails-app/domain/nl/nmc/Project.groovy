@@ -28,7 +28,7 @@ class Project {
          * Default location
          */
         def ctx = grailsApplication.parentContext
-        def location = "${ctx.getResource('/').getFile()}/${this.id.encodeAsBase64()}/"
+        def location = "${ctx.getResource('/').getFile()}/${this.id}/"
 
         /**
          * if upload location is defined in properties file then use it
