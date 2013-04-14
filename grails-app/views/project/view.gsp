@@ -8,12 +8,6 @@
     <script src="${resource(dir: 'js', file: 'jquery.handsontable.full.js')}"></script>
     <link rel="stylesheet" media="screen" href="${resource(dir: 'css', file: 'jquery.handsontable.full.css')}"
           type="text/css">
-    <style class="common">
-    .dimmed {
-        font-style: italic;
-        color: #777;
-    }
-    </style>
 </head>
 
 <body>
@@ -120,54 +114,63 @@
     <div class="tab-pane" id="sampList">
         <div id="sampleList" style="height:405px; border: thin solid #cdcdcd; padding: 0px; overflow: auto">
         </div>
-        <g:submitButton class="btn" name="refreshSampleList" value="refresh"/>
-        <span class="input-xlarge uneditable-input">Lorem Ipsum and then some</span>
+        <g:form name="saveSamples" action="saveSamples" controller="project" id="${project?.id}">
+            <g:submitButton class="btn" name="SaveSampleList" value="save"/>
+        </g:form>
+        <g:form name="viewGraph" action="viewGraph" controller="project" id="${project?.id}">
+            <g:submitButton class="btn" name="viewGraph" value="Proceed to Correction Settings"/>
+        </g:form>
     </div>
     <script>
-        $('#refreshSampleList').click(function () {
-            $('#sampleList').data('handsontable').render();
-        });
         function saveChange(change, source) {
             if (source === 'loadData') {
                 return; // data is just loaded don't save this change
             }
-            if(change && change[0][2]===change[0][3])  return; // no change same old value
+            if (change && change[0][2] === change[0][3])  return; // no change same old value
             var rowId = change[0][0];
             var rowData = $('#sampleList').data('handsontable').getData()[rowId];
             var editedSample_id = rowData.id;
-            if(!editedSample_id) return;
+            if (!editedSample_id) return;
             var samp = {};
             samp[change[0][1]] = change[0][3];
             $.ajax({
                 url: "/QCPipeline/sample/update/" + editedSample_id,
                 dataType: "json",
                 type: "POST",
-                cache:false,
+                cache: false,
                 data: samp,
                 statusCode: {
-                    404: function() {
+                    404: function () {
                         console.log("page not found");
                     }
                 },
                 success: function (data) {
                     console.log(data);
                 },
-                error: function (jqXHR, textStatus, errorThrown ) {
-                    console.log(textStatus,errorThrown);
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(textStatus, errorThrown);
                 }
             });
         }
 
         function readonlyRenderer(instance, td, row, col, prop, value, cellProperties) {
+            Handsontable.TextCell.renderer.apply(this, arguments);
             if (cellProperties.readOnly) {
-                td.className = 'dimmed'; //'input-xlarge uneditable-input';
+                td.style.fontStyle = 'italic';
+                //td.style.fontWeight = 'bold';
+                td.style.color = '#777';
             }
-            Handsontable.NumericCell.renderer.apply(this, arguments);
         }
-        var $container = $("#sampleList");
-        var handsontable = $container.data('handsontable');
+        function rowFormater(instance, td, row, col, prop, value, cellProperties) {
+            if (prop === 'qc' && value === true) {
+                td.style.backgroundColor = '#ff8c00';
+            }
+            Handsontable.CheckboxCell.renderer.apply(this, arguments);
+        }
+        var container = $("#sampleList");
+        var handsontable = container.data('handsontable');
         function callbackGrid(myData) {
-            $container.handsontable({
+            container.handsontable({
                         data: myData,
                         onChange: saveChange,
                         minSpareRows: 1, //always keep at least 1 spare row at the bottom,
@@ -181,26 +184,36 @@
                         manualColumnResize: true,
                         fillHandle: true,
                         colHeaders: true,
-                        colHeaders: ['Order', 'Name', 'Id', 'Level', 'isOutlier', 'isSuspect', 'Comment', 'Batch', 'Preparation', 'Injection', 'isSample', 'isQC', 'isCal', 'isBlank', 'isWash', 'isSST', 'isProc'],
+                        colHeaders: ['Order', 'Name', 'Id', 'Level', 'isOutlier', 'Comment', 'Batch', 'Preparation', 'Injection', 'isSample', 'isQC', 'isCal', 'isBlank'],
                         columns: [
-                            {data: "sampleOrder", type: {renderer: readonlyRenderer}, readonly: true},
-                            {data: "name", renderer: readonlyRenderer},
-                            {data: "sampleID", type: 'numeric'},
+                            {data: "sampleOrder", type: 'numeric', readonly: true},
+                            {data: "name", readonly: true},
+                            {data: "sampleID"},
                             {data: "level"},
                             {data: "outlier", type: Handsontable.CheckboxCell},
-                            {data: "suspect", type: Handsontable.CheckboxCell},
+                            //{data: "suspect", type: Handsontable.CheckboxCell},
                             {data: "comment"},
                             {data: "batch", type: 'numeric'},
                             {data: "preparation", type: 'numeric'},
                             {data: "injection", type: 'numeric'},
                             {data: "sample", type: Handsontable.CheckboxCell},
-                            {data: "qc", type: Handsontable.CheckboxCell},
+                            {data: "qc", type: {renderer: rowFormater}},
                             {data: "cal", type: Handsontable.CheckboxCell},
                             {data: "blank", type: Handsontable.CheckboxCell},
-                            {data: "wash", type: Handsontable.CheckboxCell},
-                            {data: "sst", type: Handsontable.CheckboxCell},
-                            {data: "proc", type: Handsontable.CheckboxCell}
-                        ]
+                            //{data: "wash", type: Handsontable.CheckboxCell},
+                            //{data: "sst", type: Handsontable.CheckboxCell},
+                            //{data: "proc", type: Handsontable.CheckboxCell}
+                        ],
+                        cells: function (row, col, prop) {
+                            var cellProperties = {};
+                            if (prop === 'sampleOrder' || prop === 'name') {
+                                cellProperties.readOnly = true;
+                                cellProperties.type = {
+                                    renderer: readonlyRenderer
+                                }
+                            }
+                            return cellProperties;
+                        }
                     }
             );
         }
