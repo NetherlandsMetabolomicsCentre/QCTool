@@ -2,7 +2,6 @@ package nl.nmc.importers
 
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.util.CellReference
-import org.codehaus.groovy.grails.commons.ApplicationHolder
 import org.grails.plugins.excelimport.AbstractExcelImporter
 import org.grails.plugins.excelimport.DefaultImportCellCollector
 
@@ -23,8 +22,6 @@ class SampleListImporter extends AbstractExcelImporter {
 
     public SampleListImporter(fileName) {
         super(fileName)
-        def ctx = ApplicationHolder.getApplication().getMainContext()
-        excelImportService = ctx.getBean("excelImportService")
     }
 
     List<Map> getSampleList() {
