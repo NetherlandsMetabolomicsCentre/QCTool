@@ -354,6 +354,10 @@ class ProjectController {
                 //job.setMeaNames(mea as String[])
                 job.save(flush: true)
                 def result = runMATLAB("[~,~,~]=generate_sampleist(${job.id})", projectFolder)
+                println result.text
+                println result.error
+                println result.exitValue
+                // DELETE samplelist incase of fails
                 if (result.exitValue == 0) {
                     /**
                      *  successful??
@@ -381,8 +385,6 @@ class ProjectController {
                      * joblog.json
                      */
                 }
-                println result.text
-                println result.error
             } else {
                 println("Error: Application Config is not loaded properly... dump:dataFolder->${grailsApplication.config.dataFolder}, grailsApplication.config->${grailsApplication.config}")
             }
@@ -471,6 +473,7 @@ class ProjectController {
             def optBlank = params.blank ?: null
             def optQc = params.qc ?: null
             def optQcInter = params.qcinter ?: null
+            def optExport = params.exportOption ?: null
             def folderLocation = grailsApplication.config.dataFolder
             folderLocation = folderLocation.replaceAll(/"/, '')
             def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
@@ -480,6 +483,7 @@ class ProjectController {
                 json.opts.blank = (optBlank as Integer) / 100
                 json.opts.qc = optQc
                 json.opts.qcinter = optQcInter
+                json.opts.export_what = optExport
                 def converter = json as JSON
                 converter.render(new FileWriter(jsonFile))
                 def result = runMATLAB("[~]=export_data(${project.getQcJobs()[0].id})", new File("${projectFolderLocation}"))
