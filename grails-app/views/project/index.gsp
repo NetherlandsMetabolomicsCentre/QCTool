@@ -14,7 +14,7 @@
                     <tr>
                         <td style="padding: 5px;" align="right" valign="top" nowrap>Project Name</td>
                         <td>
-                            <g:textField name="name" value="${params.name ?: ''}"/>
+                            <g:textField name="name" value="${params.name ?: ''}" required="true"/>
                         </td>
                     </tr>
                     <tr>
