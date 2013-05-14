@@ -38,7 +38,7 @@
 
 <body>
 
-<div id="chart1">
+<div id="chart2">
     <svg></svg>
 </div>
 <g:form name="createSetting" action="addCorrectionSetting" controller="project" id="${project?.id}">
@@ -66,6 +66,20 @@
             </td>
         </tr>
         <tr>
+            <td style="padding: 5px;" align="right" valign="top" nowrap>Export corrected data options :</td>
+            <td>
+                <g:select from="${exportOptions = [
+                        1: "Running Samples (average preparations/injections)",
+                        2: "Running Samples (average preparations/first injection)",
+                        3: "Running Samples (first preparation/average injections)",
+                        4: "Running Samples (first preparation/first injection)",
+                        5: "Running Samples (unchanged)",
+                        6: "Running Samples+QC's (unchanged)",
+                        7: "Everything (including QC's calibrants etc)",
+                ]}" name="exportOption" value="4" optionKey="key" optionValue="value"/>
+            </td>
+        </tr>
+        <tr>
             <td>&nbsp;</td>
             <td>
                 <g:submitButton name="submit" class="btn" value="Correct & Download"/>
@@ -77,7 +91,7 @@
 </br>
 </br>
 Experimental Part:
-<div id="chart2">
+<div id="chart1">
     <svg></svg>
 </div>
 
@@ -98,24 +112,27 @@ Experimental Part:
 
 <script>
     function barChartData() {
-        var amount = {
-            key: "Amount",
-            color: "#2ca02c",
-            values: [
-            ]
-        };
         var jsonObj = ${ MatlabObjX.opts.barVals as JSON};
         var peaks = [];
-        $.each(jsonObj, function (index, area) {
+        $.each(jsonObj, function (index, row) {
+            var amount = {
+                key: "Amount",
+                color: "#2ca02c",
+                values: [
+                ]
+            };
             var vals = [];
-            $.each(area, function (i, value) {
-                vals.push({
-                    "label": i,
-                    "value": value
-                });
+            $.each(row, function (i, value) {
+                if (value > 0) {
+                    vals.push({
+                        "label": i,
+                        "value": value
+                    });
+                }
             });
             amount.values = vals;
             peaks[index] = amount;
+
         });
         return peaks;
     }
@@ -194,16 +211,18 @@ Experimental Part:
     $.each(jsonObj, function (index, area) {
         var vals = [];
         $.each(area, function (i, value) {
-            vals.push({x: i, y: value});
+            if (value > 0) {
+                vals.push({x: i, y: value});
+            }
         });
         peaks[index] = vals;
     });
 
     var cutoffValsSeries = [];
-    for (var i = 0; i < 25; i++) {
+    for (var i = 0; i < peaks[0].concat(peaks[1]).length; i++) {
         cutoffValsSeries.push({x: i, y: 5.0 });
     }
-    var aMap = { "key": "QCSamples", "bar": true, "values": peaks[0] }, bMap = { "key": "Cutoff", "values": cutoffValsSeries};
+    var aMap = { "key": "QC Samples", "bar": true, "values": peaks[0].concat(peaks[1]) }, bMap = { "key": "Blank Correction Cutoff", "values": cutoffValsSeries};
 
     var combineData = [aMap, bMap];
     /**
@@ -218,27 +237,38 @@ Experimental Part:
 
     nv.addGraph(function () {
         var chart = nv.models.linePlusBarChart()
-                .margin({top: 30, right: 60, bottom: 50, left: 70})
+                .margin({top: 30, right: 60, bottom: 50, left: 80})
                 .x(function (d, i) {
                     return i
                 })
                 .color(d3.scale.category10().range());
-
-        chart.xAxis.tickFormat(function (d) {
-            var dx = combineData[0].values[d] && combineData[0].values[d].x || 0;
-            return dx;
-        });
+        /*
+         chart.xAxis.tickFormat(function (d) {
+         var dx = combineData[0].values[d] && combineData[0].values[d].x || 0;
+         return dx;
+         });
+         */
+        chart.xAxis
+                .axisLabel('Metabolite #');
 
         chart.y1Axis
-                .tickFormat(d3.format(',f'));
-
-        chart.y2Axis
+                .axisLabel('%')
                 .tickFormat(function (d) {
-                    return d3.format(',.2f')(d) + '%'
+                    return d3.format(',f')(d) + '%'
                 });
 
-        chart.bars.forceY([0]);
-        //chart.lines.forceY([0]);
+        /*
+         chart.y1Axis
+         .tickFormat(d3.format(',f'));
+
+         chart.y2Axis
+         .tickFormat(function (d) {
+         return d3.format(',f')(d) + '%'
+         });
+         */
+        chart.bars.forceY([0, 100]);
+        chart.bars.forceX([0, peaks[0].concat(peaks[1]).length] + 1);
+        chart.lines.forceY([0, 100]);
 
         d3.select('#chart2 svg')
                 .datum(combineData)
