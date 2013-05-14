@@ -323,6 +323,8 @@ class ProjectController {
 
         if (params?.submit == "Proceed to Report Settings" && !project.equals(null) && dataList) {
             def folderLocation = grailsApplication.config.dataFolder
+            def matlabLogFile = grailsApplication.config.matlabLogFile
+            matlabLogFile = matlabLogFile ? matlabLogFile : "matlab_log.txt"
             if (folderLocation) {
                 folderLocation = folderLocation.replaceAll(/"/, '')
 
@@ -353,7 +355,7 @@ class ProjectController {
                         mailTo: "me@domain.nl")
                 //job.setMeaNames(mea as String[])
                 job.save(flush: true)
-                def result = runMATLAB("[~,~,~]=generate_sampleist(${job.id})", projectFolder)
+                def result = runMATLAB("[~,~,~]=generate_sampleist(${job.id})", matlabLogFile, projectFolder)
                 println result.text
                 println result.error
                 println result.exitValue
@@ -475,6 +477,8 @@ class ProjectController {
             def optQcInter = params.qcinter ?: null
             def optExport = params.exportOption ?: null
             def folderLocation = grailsApplication.config.dataFolder
+            def matlabLogFile = grailsApplication.config.matlabLogFile
+            matlabLogFile = matlabLogFile ? matlabLogFile : "matlab_log.txt"
             folderLocation = folderLocation.replaceAll(/"/, '')
             def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
             def jsonFile = new File("${projectFolderLocation + File.separator }output" + File.separator + "options.json")
@@ -486,7 +490,7 @@ class ProjectController {
                 json.opts.export_what = optExport
                 def converter = json as JSON
                 converter.render(new FileWriter(jsonFile))
-                def result = runMATLAB("[~]=export_data(${project.getQcJobs()[0].id})", new File("${projectFolderLocation}"))
+                def result = runMATLAB("[~]=export_data(${project.getQcJobs()[0].id})", matlabLogFile, new File("${projectFolderLocation}"))
                 if (result.exitValue == 0) {
 
                 }
@@ -552,7 +556,7 @@ class ProjectController {
         }
     }
 
-    private runMATLAB(String MATLABScriptName, File baseDir) {
+    private runMATLAB(String MATLABScriptName, String logFile, File baseDir) {
         def ant = new AntBuilder()
         def commandLiteral = grailsApplication.config.matlabCommand
         commandLiteral = commandLiteral.replaceAll(/"/, '')
@@ -562,7 +566,7 @@ class ProjectController {
                 failonerror: "true",
                 dir: "${baseDir}",
                 executable: "${commandLiteral}") {
-            arg(line: "-nodesktop -nosplash -logfile /tmp/matlab_log -r \"${MATLABScriptName}\"")
+            arg(line: "-nodesktop -nosplash -logfile ${logFile} -r \"${MATLABScriptName}\"")
         }
 
         def result = new Expando(
