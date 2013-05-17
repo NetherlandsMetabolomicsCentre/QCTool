@@ -9,6 +9,9 @@
     <tr>
         <td valign="top" style="border: thin solid #dcdcdc; padding: 25px; width: 300px">
             <strong>new project</strong>
+            <g:if test="${flash.message}">
+                <div class="text-error">${flash.message}</div>
+            </g:if>
             <g:form name="createProject" action="index">
                 <table>
                     <tr>

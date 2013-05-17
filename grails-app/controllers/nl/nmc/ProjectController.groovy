@@ -23,7 +23,7 @@ class ProjectController {
         if (params?.submit) {
             def project = new Project(params)
             if (!project.save(flush: true)) {
-                flash.message = "was unable to save the Project - ${params}"
+                flash.message = "was unable to save the Project"
             } else {
                 redirect(action: "view", id: project.id)
             }

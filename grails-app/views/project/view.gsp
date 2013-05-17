@@ -47,11 +47,11 @@
                 <li><g:link action="showFile" id="${project.id}" params="[data: data.id]">${data.name}</g:link></li>
             </g:each>
         </ul>
-
-        <g:form name="proceedToSettings" action="generateSampleList" controller="project" id="${project?.id}">
-            <g:submitButton name="submit" class="btn" value="Proceed to Report Settings"/>
-        </g:form>
-
+        <g:if test="${project.datas}">
+            <g:form name="proceedToSettings" action="generateSampleList" controller="project" id="${project?.id}">
+                <g:submitButton name="submit" class="btn" value="Proceed to Report Settings"/>
+            </g:form>
+        </g:if>
     </div>
 
     <div class="tab-pane" id="old">
@@ -114,12 +114,21 @@
     <div class="tab-pane" id="sampList">
         <div id="sampleList" style="height:405px; border: thin solid #cdcdcd; padding: 0px; overflow: auto">
         </div>
-        <g:form name="saveSamples" action="saveSamples" controller="project" id="${project?.id}">
-            <g:submitButton class="btn" name="SaveSampleList" value="save"/>
-        </g:form>
-        <g:form name="viewGraph" action="viewGraph" controller="project" id="${project?.id}">
-            <g:submitButton class="btn" name="viewGraph" value="Proceed to Correction Settings"/>
-        </g:form>
+
+        <g:if test="${project.samples.size() > 2}">
+            <g:form name="viewGraph" action="viewGraph" controller="project" id="${project?.id}">
+                <table>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td><g:submitButton class="btn" name="viewGraph" value="Proceed to Correction Settings"/></td>
+                    </tr>
+                </table>
+            </g:form>
+        </g:if>
     </div>
     <script>
         function saveChange(change, source) {
