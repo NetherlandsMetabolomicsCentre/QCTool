@@ -26,19 +26,12 @@
         min-width: 100px;
         min-height: 100px;
     }
-
-    #chart2 svg {
-        height: 500px;
-        min-width: 100px;
-        min-height: 100px;
-    }
-
     </style>
 </head>
 
 <body>
 
-<div id="chart2">
+<div id="chart1">
     <svg></svg>
 </div>
 <g:form name="createSetting" action="addCorrectionSetting" controller="project" id="${project?.id}">
@@ -90,11 +83,6 @@
 </br>
 </br>
 </br>
-Experimental Part:
-<div id="chart1">
-    <svg></svg>
-</div>
-
 <script src="${resource(dir: 'js/nvd3/lib', file: 'd3.v2.js')}"></script>
 <script src="${resource(dir: 'js/nvd3', file: 'nv.d3.js')}"></script>
 <script src="${resource(dir: 'js/nvd3/src', file: 'tooltip.js')}"></script>
@@ -110,56 +98,7 @@ Experimental Part:
 <script src="${resource(dir: 'js/nvd3/src/models', file: 'historicalBar.js')}"></script>
 <script src="${resource(dir: 'js/nvd3/src/models', file: 'linePlusBarChart.js')}"></script>
 
-<script>
-    function barChartData() {
-        var jsonObj = ${ MatlabObjX.opts.barVals as JSON};
-        var peaks = [];
-        $.each(jsonObj, function (index, row) {
-            var amount = {
-                key: "Amount",
-                color: "#2ca02c",
-                values: [
-                ]
-            };
-            var vals = [];
-            $.each(row, function (i, value) {
-                if (value > 0) {
-                    vals.push({
-                        "label": i,
-                        "value": value
-                    });
-                }
-            });
-            amount.values = vals;
-            peaks[index] = amount;
-
-        });
-        return peaks;
-    }
-    nv.addGraph(function () {
-
-        var chart = nv.models.discreteBarChart()
-                .x(function (d) {
-                    return d.label
-                })
-                .y(function (d) {
-                    return d.value
-                })
-                .staggerLabels(true)
-                .tooltips(false)
-                .showValues(true);
-
-        d3.select('#chart1 svg')
-                .datum(barChartData)
-                .transition().duration(500)
-                .attr("width", 10)
-                .call(chart);
-
-        nv.utils.windowResize(chart.update);
-
-        return chart;
-    });
-
+<script type="text/javascript" >
     function lineData() {
         var line = [];
 
@@ -170,41 +109,11 @@ Experimental Part:
         return [
             {
                 values: line,
-                key: "Cut off",
+                key: "Blank Correction Cutoff",
                 color: "#ff7f0e"
             }
         ];
     }
-    /*
-     nv.addGraph(function () {
-     var chart = nv.models.lineChart()
-     .margin({top: 20, right: 20, bottom: 20, left: 20})
-     chart
-     .x(function (d, i) {
-     return i
-     })
-
-
-     chart.xAxis // chart sub-models (ie. xAxis, yAxis, etc) when accessed directly, return themselves, not the parent chart, so need to chain separately
-     .tickFormat(d3.format(',.1f'));
-
-     chart.yAxis
-     .axisLabel('Voltage (v)')
-     .tickFormat(d3.format(',.1f'));
-     chart.lines.forceY([-5]);
-
-     d3.select('#chart1 svg')
-     //.datum([]) //for testing noData
-     .datum(lineData())
-     .call(chart);
-     nv.utils.windowResize(chart.update);
-     chart.dispatch.on('stateChange', function (e) {
-     nv.log('New State:', JSON.stringify(e));
-     });
-
-     return chart;
-     });
-     */
 
     var jsonObj = ${ MatlabObjX.opts.barVals as JSON};
     var peaks = [];
@@ -225,15 +134,6 @@ Experimental Part:
     var aMap = { "key": "QC Samples", "bar": true, "values": peaks[0].concat(peaks[1]) }, bMap = { "key": "Blank Correction Cutoff", "values": cutoffValsSeries};
 
     var combineData = [aMap, bMap];
-    /**
-     *
-     var combineData = [aMap, bMap].map(function (series) {
-     series.values = series.values.map(function (d) {
-     return {x: d[0], y: d[1] }
-     });
-     return series;
-     });
-     */
 
     nv.addGraph(function () {
         var chart = nv.models.linePlusBarChart()
@@ -257,20 +157,17 @@ Experimental Part:
                     return d3.format(',f')(d) + '%'
                 });
 
-        /*
-         chart.y1Axis
-         .tickFormat(d3.format(',f'));
+        chart.y2Axis
+                .tickFormat(
+                function (d) {
+                    return d3.format(",d")(d)
+                }).tickValues([0, 100])
 
-         chart.y2Axis
-         .tickFormat(function (d) {
-         return d3.format(',f')(d) + '%'
-         });
-         */
         chart.bars.forceY([0, 100]);
         chart.bars.forceX([0, peaks[0].concat(peaks[1]).length] + 1);
         chart.lines.forceY([0, 100]);
 
-        d3.select('#chart2 svg')
+        d3.select('#chart1 svg')
                 .datum(combineData)
                 .transition().duration(500).call(chart);
 
