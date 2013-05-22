@@ -1,5 +1,6 @@
 package nl.nmc
 
+import grails.converters.JSON
 import org.springframework.dao.DataIntegrityViolationException
 
 class SampleController {
@@ -53,12 +54,20 @@ class SampleController {
     }
 
     def update(Long id, Long version) {
+        def resultMap = [
+                message: "Some errors occurred!",
+                statusCode: 404,
+                result: "Error"
+        ]
         def sampleInstance = Sample.get(id)
         if (!sampleInstance) {
-            flash.message = message(code: 'default.not.found.message', args: [message(code: 'sample.label', default: 'Sample'), id])
+            //flash.message = message(code: 'default.not.found.message', args: [message(code: 'sample.label', default: 'Sample'), id])
             //redirect(action: "list")
-            response.status = 400;
-            return
+            response.status = 400
+            resultMap.message = "Sample not found"
+            resultMap.statusCode = 400
+            resultMap.result ="Error"
+            render resultMap as JSON
         }
 
         if (version != null) {
@@ -68,7 +77,10 @@ class SampleController {
                         "Another user has updated this Sample while you were editing")
                 //render(view: "edit", model: [sampleInstance: sampleInstance])
                 response.status = 400
-                return
+                resultMap.message = "Another user has updated this Sample while you were editing"
+                resultMap.statusCode = 400
+                resultMap.result ="Error"
+                render resultMap as JSON
             }
         }
 
@@ -76,13 +88,19 @@ class SampleController {
 
         if (!sampleInstance.save(flush: true)) {
             //render(view: "edit", model: [sampleInstance: sampleInstance])
-            response.status = 400
-            return
+            response.status = 406
+            resultMap.message = "Unable to update requested properties ${params}"
+            resultMap.statusCode = 406
+            resultMap.result ="Error"
+            render resultMap as JSON
         }
 
-        flash.message = message(code: 'default.updated.message', args: [message(code: 'sample.label', default: 'Sample'), sampleInstance.id])
-        response.status = 205
-        //redirect(action: "show", id: sampleInstance.id)
+        //flash.message = message(code: 'default.updated.message', args: [message(code: 'sample.label', default: 'Sample'), sampleInstance.id])
+        response.status = 200
+        resultMap.message = "Sample updated successfully"
+        resultMap.statusCode = 200
+        resultMap.result ="OK"
+        render resultMap as JSON
     }
 
     def delete(Long id) {
