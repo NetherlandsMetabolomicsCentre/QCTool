@@ -442,12 +442,28 @@ class ProjectController {
 
     def saveSample = {
         if (!params?.id) {
+            response.status = 404 //Not Found
+            //render """This Sample ID="${params?.id}" does not exist. Request must include Sample ID"""
         }
-        def project = Project.get(params.id) ?: null
-        if (project) {
-            def sample = JSON.parse(params.sample)
-            def s = Sample.get(jsonSamp.id)
+
+        def sample = Sample.get(params.id) ?: null
+        if (sample) {
+            println(params)
+            sample.properties = params
+
+            if (!sample.save(flush: true)) {
+                response.status = 200
+                //render """Can not save Sample"""
+            } else {
+                response.status = 200
+            }
+
+        } else {
+            response.status = 404 //Not Found
+            //render """This Sample ID="${params?.id}" does not exist."""
         }
+
+
     }
 
     def viewGraph = {
@@ -588,27 +604,29 @@ class ProjectController {
     private loadSampleList(Project project, String folderLocation) {
         def importer = new SampleListImporter(folderLocation + File.separator + "samplelist.xlsx")
         importer.excelImportService = grailsApplication.getMainContext().getBean("excelImportService")
-        def sampleListMap = importer.getSampleList()
-        sampleListMap.each { Map sampleParams ->
-            new Sample(project: project,
-                    sampleOrder: sampleParams['sampleOrder'] as int,
-                    name: sampleParams['name'],
-                    sampleID: sampleParams['sampleID'],
-                    level: sampleParams['level'],
-                    outlier: "${sampleParams['outlier'] as int}".toBoolean(),
-                    suspect: "${sampleParams['suspect'] as int}".toBoolean(),
-                    comment: sampleParams['comment'],
-                    batch: sampleParams['batch'] as int,
-                    preparation: sampleParams['preparation'] as int,
-                    injection: sampleParams['injection'] as int,
-                    sample: "${sampleParams['sample'] as int}".toBoolean(),
-                    qc: "${sampleParams['qc'] as int}".toBoolean(),
-                    cal: "${sampleParams['cal'] as int}".toBoolean(),
-                    blank: "${sampleParams['blank'] as int}".toBoolean(),
-                    wash: "${sampleParams['wash'] as int}".toBoolean(),
-                    sst: "${sampleParams['sst']}".toBoolean(),
-                    proc: "${sampleParams['proc'] as int}".toBoolean()
-            ).save(flush: true)
+        importer.getSheetsName().findAll { sheetName -> sheetName =~ /(?i)^Batch*/ }.each { String sheetName ->
+            def sampleListMap = importer.getSampleList(sheetName)
+            sampleListMap.each { Map sampleParams ->
+                new Sample(project: project,
+                        sampleOrder: sampleParams['sampleOrder'] as int,
+                        name: sampleParams['name'],
+                        sampleID: sampleParams['sampleID'],
+                        level: sampleParams['level'],
+                        outlier: "${sampleParams['outlier'] as int}".toBoolean(),
+                        suspect: "${sampleParams['suspect'] as int}".toBoolean(),
+                        comment: sampleParams['comment'],
+                        batch: sampleParams['batch'] as int,
+                        preparation: sampleParams['preparation'] as int,
+                        injection: sampleParams['injection'] as int,
+                        sample: "${sampleParams['sample'] as int}".toBoolean(),
+                        qc: "${sampleParams['qc'] as int}".toBoolean(),
+                        cal: "${sampleParams['cal'] as int}".toBoolean(),
+                        blank: "${sampleParams['blank'] as int}".toBoolean(),
+                        wash: "${sampleParams['wash'] as int}".toBoolean(),
+                        sst: "${sampleParams['sst']}".toBoolean(),
+                        proc: "${sampleParams['proc'] as int}".toBoolean()
+                ).save(flush: true)
+            }
         }
     }
 }

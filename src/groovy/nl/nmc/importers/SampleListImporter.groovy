@@ -24,6 +24,28 @@ class SampleListImporter extends AbstractExcelImporter {
         super(fileName)
     }
 
+    def getSheetsName() {
+        List<String> sheetNames = new ArrayList<String>();
+        for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+            sheetNames.add(workbook.getSheetName(i));
+        }
+        return sheetNames
+    }
+
+    List<Map> getSampleList(String sheetName) {
+        s_CONFIG_SAMPLE_LIST_COLUMN_MAP.sheet = sheetName
+        def sheet = workbook.getSheet(s_CONFIG_SAMPLE_LIST_COLUMN_MAP.sheet)
+        def excelRow = sheet.getRow(0)
+        def columnMap = buildColumnMapFromHeaderRow(excelRow)
+        s_CONFIG_SAMPLE_LIST_COLUMN_MAP.columnMap = columnMap
+        excelImportService.columns(
+                workbook,
+                s_CONFIG_SAMPLE_LIST_COLUMN_MAP,
+                cellReporter,
+                s_configurationMap
+        )
+    }
+
     List<Map> getSampleList() {
         def sheet = workbook.getSheet(s_CONFIG_SAMPLE_LIST_COLUMN_MAP.sheet)
         def excelRow = sheet.getRow(0)
