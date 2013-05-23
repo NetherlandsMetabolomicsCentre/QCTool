@@ -12,13 +12,14 @@ nv.models.multiBarChart = function() {
     , controls = nv.models.legend()
     ;
 
-  var margin = {top: 30, right: 20, bottom: 30, left: 60}
+  var margin = {top: 30, right: 20, bottom: 50, left: 60}
     , width = null
     , height = null
     , color = nv.utils.defaultColor()
     , showControls = true
     , showLegend = true
     , reduceXTicks = true // if false a tick will show for every data point
+    , staggerLabels = false
     , rotateLabels = 0
     , tooltips = true
     , tooltip = function(key, x, y, e, graph) {
@@ -28,6 +29,7 @@ nv.models.multiBarChart = function() {
     , x //can be accessed via chart.xScale()
     , y //can be accessed via chart.yScale()
     , state = { stacked: false }
+    , defaultState = null
     , noData = "No Data Available."
     , dispatch = d3.dispatch('tooltipShow', 'tooltipHide', 'stateChange', 'changeState')
     , controlWidth = function() { return showControls ? 180 : 0 }
@@ -84,7 +86,16 @@ nv.models.multiBarChart = function() {
       //set state.disabled
       state.disabled = data.map(function(d) { return !!d.disabled });
 
-
+      if (!defaultState) {
+        var key;
+        defaultState = {};
+        for (key in state) {
+          if (state[key] instanceof Array)
+            defaultState[key] = state[key].slice(0);
+          else
+            defaultState[key] = state[key];
+        }
+      }
       //------------------------------------------------------------
       // Display noData message if there's nothing to show.
 
@@ -222,6 +233,27 @@ nv.models.multiBarChart = function() {
       xTicks
           .selectAll('line, text')
           .style('opacity', 1)
+
+      if (staggerLabels) {
+          var getTranslate = function(x,y) {
+              return "translate(" + x + "," + y + ")";
+          };
+
+          var staggerUp = 5, staggerDown = 17;  //pixels to stagger by
+          // Issue #140
+          xTicks
+            .selectAll("text")
+            .attr('transform', function(d,i,j) { 
+                return  getTranslate(0, (j % 2 == 0 ? staggerUp : staggerDown));
+              });
+
+          var totalInBetweenTicks = d3.selectAll(".nv-x.nv-axis .nv-wrap g g text")[0].length;
+          g.selectAll(".nv-x.nv-axis .nv-axisMaxMin text")
+            .attr("transform", function(d,i) {
+                return getTranslate(0, (i === 0 || totalInBetweenTicks % 2 !== 0) ? staggerDown : staggerUp);
+            });
+      }
+
 
       if (reduceXTicks)
         xTicks
@@ -412,6 +444,12 @@ nv.models.multiBarChart = function() {
     return chart;
   }
 
+  chart.staggerLabels = function(_) {
+    if (!arguments.length) return staggerLabels;
+    staggerLabels = _;
+    return chart;
+  };
+
   chart.tooltip = function(_) {
     if (!arguments.length) return tooltip;
     tooltip = _;
@@ -436,6 +474,12 @@ nv.models.multiBarChart = function() {
     return chart;
   };
 
+  chart.defaultState = function(_) {
+    if (!arguments.length) return defaultState;
+    defaultState = _;
+    return chart;
+  };
+  
   chart.noData = function(_) {
     if (!arguments.length) return noData;
     noData = _;
