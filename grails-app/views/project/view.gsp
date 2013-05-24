@@ -179,7 +179,6 @@
                     //console.log(this);
                 }
             });
-            //td.style.backgroundColor = '#ff8c00';
         }
         Handsontable.CheckboxCell.renderer.apply(this, arguments);
     }
@@ -189,7 +188,7 @@
         container.handsontable({
                     data: myData,
                     onChange: saveChange,
-                    minSpareRows: 1, //always keep at least 1 spare row at the bottom,
+                    minSpareRows: 0, //always keep at least 1 spare row at the bottom,
                     currentRowClassName: 'currentRow',
                     currentColClassName: 'currentCol',
                     rowHeaders: true,
