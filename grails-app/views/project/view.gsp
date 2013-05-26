@@ -120,7 +120,7 @@
             <table>
                 <tr>
                     <td>&nbsp;</td>
-                    <td>&nbsp;</td>
+                    <td><g:hiddenField name="jobId" value="${params.job}"/></td>
                 </tr>
                 <tr>
                     <td>&nbsp;</td>

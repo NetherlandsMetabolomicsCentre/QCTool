@@ -355,24 +355,29 @@ class ProjectController {
                         mailTo: "me@domain.nl")
                 //job.setMeaNames(mea as String[])
                 job.save(flush: true)
+                params.job = job.id
                 def result = runMATLAB("[~,~,~]=generate_sampleist(${job.id})", matlabLogFile, projectFolder)
                 println result.text
                 println result.error
                 println result.exitValue
                 // DELETE samplelist incase of fails
                 if (result.exitValue == 0) {
-                    /**
-                     *  successful??
-                     *  clear the old sample list
-                     */
-                    project.getSamples()?.each { s ->
-                        s.delete(flush: true)
+                    def sampleList = new File("${inputFolder}" + File.separator + "samplelist.xlsx")
+                    if (!sampleList.isFile()) {
+                        flash.message = "samplelist.xlsx not generated, Some Matlab error has accrued!"
+                    } else {
+                        /**
+                         *  successful??
+                         *  clear the old sample list
+                         */
+                        project.getSamples()?.each { s ->
+                            s.delete(flush: true)
+                        }
+                        /**
+                         *  load newly generated sample list
+                         */
+                        loadSampleList(project, "${inputFolder}")
                     }
-                    /**
-                     *  load newly generated sample list
-                     */
-                    loadSampleList(project, "${inputFolder}")
-
                     /**
                      * load uncorrected data structure
                      * unCorrectedData.json
@@ -471,6 +476,7 @@ class ProjectController {
             return
         }
         def project = Project.get(params.id) ?: null
+        def qcJobId = params.jobId ?: null
         if (project) {
             def folderLocation = grailsApplication.config.dataFolder
             folderLocation = folderLocation.replaceAll(/"/, '')
@@ -478,7 +484,7 @@ class ProjectController {
             def jsonFile = new File("${projectFolderLocation + File.separator }output" + File.separator + "options.json")
             if (jsonFile.exists()) {
                 def json = JSON.parse(new FileInputStream(jsonFile), "UTF-8")
-                [project: project, MatlabObjX: json]
+                [project: project, MatlabObjX: json, jobId: qcJobId]
             } else {
                 redirect(action: "view", params: params)
             }
@@ -487,6 +493,7 @@ class ProjectController {
 
     def addCorrectionSetting = {
         def project = Project.get(params.id) ?: null
+        def qcJobId = params.jobId ?: null
         if (params?.submit == "Correct & Download" && project) {
             def optBlank = params.blank ?: null
             def optQc = params.qc ?: null
@@ -506,14 +513,33 @@ class ProjectController {
                 json.opts.export_what = optExport
                 def converter = json as JSON
                 converter.render(new FileWriter(jsonFile))
-                def result = runMATLAB("[~]=export_data(${project.getQcJobs()[0].id})", matlabLogFile, new File("${projectFolderLocation}"))
+                if (!qcJobId)
+                    qcJobId = project.getQcJobs()[0].id
+                def result = runMATLAB("[~]=export_data(${qcJobId})", matlabLogFile, new File("${projectFolderLocation}"))
                 if (result.exitValue == 0) {
-
+                    def csvFiles = new FileNameFinder().getFileNames("${projectFolderLocation + File.separator }output", '**/*.csv', '**/*.mat')
+                    def download
+                    new File("${projectFolderLocation + File.separator }output" + File.separator).listFiles().sort() {
+                        a, b -> a.lastModified().compareTo b.lastModified()
+                    }.each {
+                        if (it.absolutePath in csvFiles) {
+                            download = it;
+                            return
+                        }
+                    }
+                    if (download && download.isFile()) {
+                        response.setContentType("text/csv")
+                        response.setHeader("Content-disposition", "attachment;filename=${download.name}")
+                        response.outputStream << download.bytes
+                        response.outputStream.flush()
+                    } else {
+                        render "was unable to download the file" // appropriate error handling
+                    }
                 }
-                println result.text
-                println result.error
             } else {
                 flash.message = "was unable to save the Setting - ${params}"
+                println result.text
+                println result.error
             }
         }
         redirect(action: "view", params: [id: params.id])
