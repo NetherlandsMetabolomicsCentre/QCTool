@@ -73,7 +73,7 @@
             </td>
         </tr>
         <tr>
-            <td>&nbsp;</td>
+            <td><g:hiddenField name="jobId" value="${jobId}"/></td>
             <td>
                 <g:submitButton name="submit" class="btn" value="Correct & Download"/>
             </td>
@@ -98,45 +98,66 @@
 <script src="${resource(dir: 'js/nvd3/src/models', file: 'historicalBar.js')}"></script>
 <script src="${resource(dir: 'js/nvd3/src/models', file: 'linePlusBarChart.js')}"></script>
 
-<script type="text/javascript" >
-    function lineData() {
-        var line = [];
-
-        for (var i = 0; i < 100; i++) {
-            line.push({x: i, y: 5});
-        }
-
-        return [
-            {
-                values: line,
-                key: "Blank Correction Cutoff",
-                color: "#ff7f0e"
-            }
-        ];
-    }
-
+<script type="text/javascript">
     var jsonObj = ${ MatlabObjX.opts.barVals as JSON};
     var peaks = [];
-    $.each(jsonObj, function (index, area) {
-        var vals = [];
-        $.each(area, function (i, value) {
-            if (value > 0) {
-                vals.push({x: i, y: value});
-            }
+    var chart;
+    var defaultCutoff =${MatlabObjX.opts.blank * 100};
+    var graphData = [
+        { "key": "QC Samples", "bar": true, "values": barData() },
+        { "key": "Blank Correction Cutoff", "values": lineData()}
+    ];
+
+    function barData() {
+        peaks = [];
+        $.each(jsonObj, function (index, area) {
+            var vals = [];
+            $.each(area, function (i, value) {
+                if (value > 0) {
+                    vals.push({x: i, y: value});
+                }
+            });
+            peaks[index] = vals;
         });
-        peaks[index] = vals;
+        return peaks[0].concat(peaks[1]);
+    }
+
+    function lineData(yAxisVal) {
+        var cutoffValsSeries = [];
+        if (!yAxisVal)
+            yAxisVal = defaultCutoff;
+        for (var i = 0; i < peaks[0].concat(peaks[1]).length; i++) {
+            cutoffValsSeries.push({x: i, y: yAxisVal });
+        }
+        return cutoffValsSeries;
+    }
+    /*
+     var aMap = { "key": "QC Samples", "bar": true, "values": peaks[0].concat(peaks[1]) }, bMap = { "key": "Blank Correction Cutoff", "values": cutoffValsSeries};
+
+     var combineData = [aMap, bMap];
+     var max = combineData[0].values[combineData[0].values.length - 1].y;
+     */
+    // register drop down change event
+    $(function () {
+        $("#blank").change(function () {
+            graphData[1].values = lineData(this.value);
+            //aMap = { "key": "QC Samples", "bar": true, "values": peaks[0].concat(peaks[1]) }, bMap = { "key": "Blank Correction Cutoff", "values": cutoffValsSeries};
+            //combineData = [aMap, bMap];
+            //max = combineData[0].values[combineData[0].values.length - 1].y;
+            redraw();
+        });
     });
 
-    var cutoffValsSeries = [];
-    for (var i = 0; i < peaks[0].concat(peaks[1]).length; i++) {
-        cutoffValsSeries.push({x: i, y: 5.0 });
+    function redraw() {
+        d3.select('#chart1 svg')
+            //.datum(combineData)
+                .datum(graphData)
+                .transition().duration(500)
+                .call(chart);
     }
-    var aMap = { "key": "QC Samples", "bar": true, "values": peaks[0].concat(peaks[1]) }, bMap = { "key": "Blank Correction Cutoff", "values": cutoffValsSeries};
-
-    var combineData = [aMap, bMap];
 
     nv.addGraph(function () {
-        var chart = nv.models.linePlusBarChart()
+        chart = nv.models.linePlusBarChart()
                 .margin({top: 30, right: 60, bottom: 50, left: 80})
                 .x(function (d, i) {
                     return i
@@ -162,13 +183,15 @@
                 function (d) {
                     return d3.format(",d")(d)
                 }).tickValues([0, 100])
+        //}).tickValues([0,10,20,30,40,50,60,70,80,90,100])
 
         chart.bars.forceY([0, 100]);
         chart.bars.forceX([0, peaks[0].concat(peaks[1]).length] + 1);
         chart.lines.forceY([0, 100]);
 
         d3.select('#chart1 svg')
-                .datum(combineData)
+            //.datum(combineData)
+                .datum(graphData)
                 .transition().duration(500).call(chart);
 
         nv.utils.windowResize(chart.update);
