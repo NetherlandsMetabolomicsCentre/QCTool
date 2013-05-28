@@ -181,7 +181,8 @@
         chart.y2Axis
                 .tickFormat(
                 function (d) {
-                    return d3.format(",d")(d)
+                    //return d3.format(",d")(d)
+                    return
                 }).tickValues([0, 100])
         //}).tickValues([0,10,20,30,40,50,60,70,80,90,100])
 
