@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta name="layout" content="qctool"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=10"/>
     <r:require modules="jquery"/>
     <g:javascript library="application"/>
     <r:layoutResources/>
@@ -36,7 +37,7 @@
     <div style="width: 450px; border: thin solid #cdcdcd; padding: 10px;">
         <strong>Upload Measurement Files here!</strong>
         <g:uploadForm controller="project" action="addFiles" id="${project?.id}" name="myUpload">
-            <input type="file" name="fileUpload" multiple
+            <input class="btn-large" type="file" name="fileUpload" multiple
                    accept="text/plain,text/csv,.csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"/>
             <g:submitButton class="btn" name="submit" value="submit"/>
         </g:uploadForm>
@@ -170,16 +171,18 @@
             td.style.color = '#777';
         }
     }
-    function rowFormater(instance, td, row, col, prop, value, cellProperties) {
-        if (prop === 'qc' && value === true) {
-            $(td.parentNode.childNodes).each(function () {
-                if (this.tagName != 'TH') {
-                    this.style.backgroundColor = '#ff8c00';
-                    this.style.background = '#ff8c00';
-                    //console.log(this);
-                }
-            });
-        }
+    var onProp = 'none';
+    function rowFormatter(instance, td, row, col, prop, value, cellProperties) {
+        var colorArr = {none: "", qc: "#ff8c00", cal: "#dff0d8", blank: "#d9edf7", sample: "#f2dede"}
+        if (prop === 'qc' && value === true) onProp = 'qc';
+        else if (prop === 'cal' && value === true) onProp = 'cal';
+        else if (prop === 'blank' && value === true) onProp = 'blank';
+        else if (prop === 'sample' && value === true) onProp = 'sample';
+        $(td.parentNode.childNodes).each(function () {
+            if (this.tagName != 'TH') {
+                this.style.backgroundColor = colorArr[onProp];
+            }
+        });
         Handsontable.CheckboxCell.renderer.apply(this, arguments);
     }
     var container = $("#sampleList");
@@ -211,10 +214,10 @@
                         {data: "batch", type: 'numeric'},
                         {data: "preparation", type: 'numeric'},
                         {data: "injection", type: 'numeric'},
-                        {data: "sample", type: Handsontable.CheckboxCell},
-                        {data: "qc", type: {renderer: rowFormater}},
-                        {data: "cal", type: Handsontable.CheckboxCell},
-                        {data: "blank", type: Handsontable.CheckboxCell},
+                        {data: "sample", type: {renderer: rowFormatter}},
+                        {data: "qc", type: {renderer: rowFormatter}},
+                        {data: "cal", type: {renderer: rowFormatter}},
+                        {data: "blank", type: {renderer: rowFormatter}}
                         //{data: "wash", type: Handsontable.CheckboxCell},
                         //{data: "sst", type: Handsontable.CheckboxCell},
                         //{data: "proc", type: Handsontable.CheckboxCell}
