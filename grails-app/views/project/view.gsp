@@ -151,14 +151,14 @@
             data: samp,
             statusCode: {
                 404: function () {
-                    console.log("page not found");
+                    //console.log("page not found");
                 }
             },
             success: function (data) {
-                console.log(data);
+                //console.log(data);
             },
             error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
+                //console.log(textStatus, errorThrown);
             }
         });
     }
