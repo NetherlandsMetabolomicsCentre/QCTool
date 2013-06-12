@@ -69,7 +69,7 @@
                         5: "Running Samples (unchanged)",
                         6: "Running Samples+QC's (unchanged)",
                         7: "Everything (including QC's calibrants etc)",
-                ]}" name="exportOption" value="4" optionKey="key" optionValue="value"/>
+                ]}" name="exportOption" value="${MatlabObjX.opts.export_what}" optionKey="key" optionValue="value"/>
             </td>
         </tr>
         <tr>
