@@ -45,6 +45,13 @@ class ProjectController {
         [project: Project.get(params.id)]
     }
 
+    def qcReport() {
+        if (!params?.id) {
+            redirect(action: "index", params: params)
+        }
+        [project: Project.get(params.id)]
+    }
+
     def addSetting() {
         def project = Project.get(params.id) ?: null
         if (params?.submit == "createProjectSetting" && project) {
@@ -430,8 +437,21 @@ class ProjectController {
         if (project) {
             def folderLocation = grailsApplication.config.dataFolder
             folderLocation = folderLocation.replaceAll(/"/, '')
-            def projectFolderLocation = "${folderLocation + project.settings.get(0).platforms.toArray()[0].toString()}/${project.name}"
-            def json = new File("${projectFolderLocation + File.separator }output" + File.separator + "correctData.json").text
+            def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
+            def json = new File("${projectFolderLocation + File.separator }output" + File.separator + "correctedData.json").text
+            render json as String
+        }
+    }
+
+    def getUncorrectedData = {
+        if (!params?.id) {
+        }
+        def project = Project.get(params.id) ?: null
+        if (project) {
+            def folderLocation = grailsApplication.config.dataFolder
+            folderLocation = folderLocation.replaceAll(/"/, '')
+            def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
+            def json = new File("${projectFolderLocation + File.separator }output" + File.separator + "uncorrectedData.json").text
             render json as String
         }
     }
@@ -535,6 +555,13 @@ class ProjectController {
                     } else {
                         render "was unable to download the file" // appropriate error handling
                     }
+                } else {
+                    println result.text
+                    println result.error
+                    println("""command failed with ${result.exitValue}
+                        executed: ${commandLiteral}
+                        error: ${result.error}
+                        text: ${result.text} ${}""")
                 }
             } else {
                 flash.message = "was unable to save the Setting - ${params}"
@@ -542,7 +569,7 @@ class ProjectController {
                 println result.error
             }
         }
-        redirect(action: "view", params: [id: params.id])
+        redirect(action: "view", params: params)
     }
 
     def saveSamples = {
