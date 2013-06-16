@@ -75,6 +75,8 @@
 
             ratioChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
             //ratioChart.forceX([0, jsonObj.OrderAll.length]);
+            ratioChart.sizeDomain([100, 100])
+                    .sizeRange([100, 100]);
 
             d3.select('#chart1 svg')
                     .datum(myData)
@@ -112,6 +114,8 @@
 
             areaChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
             //ratioChart.forceX([0, jsonObj.OrderAll.length]);
+            areaChart.sizeDomain([100, 100])
+                    .sizeRange([100, 100]);
 
             d3.select('#chart2 svg')
                     .datum(myData)
@@ -189,7 +193,7 @@
                 data[i].values.push({
                     x: objX.OrderAll[j][0],
                     y: yVal,
-                    size: Math.random(),
+                    size: 1,
                     shape: shapes[j % 6]
                 });
             }
@@ -222,7 +226,7 @@
                 data[i].values.push({
                     x: objX.OrderAll[j][0],
                     y: yVal,
-                    size: Math.random(),
+                    size: 1,
                     shape: shapes[j % 6]
                 });
             }
