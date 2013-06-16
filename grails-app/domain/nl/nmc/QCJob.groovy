@@ -14,4 +14,5 @@ class QCJob {
         mailTo(email: true, nullable: true, blank: false)
     }
     static belongsTo = [project: Project]
+    //static hasMany = [sample: Sample]
 }
