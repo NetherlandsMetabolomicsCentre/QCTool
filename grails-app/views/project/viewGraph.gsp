@@ -80,6 +80,20 @@
         </tr>
     </table>
 </g:form>
+<g:if test="${MatlabObjX}">
+    <g:form name="viewReport" action="qcReport" controller="project" id="${project?.id}">
+        <table>
+            <tr>
+                <td style="padding: 5px;" align="right" valign="top">&nbsp;</td>
+                <td><g:hiddenField name="jobId" value="${params.job}"/></td>
+            </tr>
+            <tr>
+                <td style="padding: 5px;" align="right" valign="top" nowrap>&nbsp;</td>
+                <td><g:submitButton class="btn" name="viewReport" value="view QC Report"/></td>
+            </tr>
+        </table>
+    </g:form>
+</g:if>
 </br>
 </br>
 </br>
@@ -176,7 +190,7 @@
                 .axisLabel('%')
                 .tickFormat(function (d) {
                     return d3.format(',f')(d) + '%'
-                });
+                }).tickValues([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
 
         chart.y2Axis
                 .tickFormat(
