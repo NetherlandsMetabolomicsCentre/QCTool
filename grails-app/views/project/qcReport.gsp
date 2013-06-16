@@ -41,7 +41,7 @@
     var jsonObj;
     var ratioChart, areaChart;
 
-    <g:remoteFunction controller="project" id="${project.id}" action="getCorrectedData" onSuccess="callbackGrid(data)"></g:remoteFunction>
+    <g:remoteFunction controller="project" id="${project.id}" action="getUncorrectedData" onSuccess="callbackGrid(data)"></g:remoteFunction>
     function callbackGrid(matlabX) {
         jsonObj = $.parseJSON(matlabX);
         if (jsonObj.X) {
@@ -56,6 +56,8 @@
         });
 
         nv.addGraph(function () {
+            var myData = randomData(jsonObj, [0]);
+            var minMax = getMinMax(myData);
             ratioChart = nv.models.scatterChart()
                     .showDistX(true)
                     .showDistY(true)
@@ -71,11 +73,11 @@
                     .tickFormat(d3.format('.02f'))
                     .axisLabel('Ratio');
 
-            //ratioChart.forceY([0, 100]);
+            ratioChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
             //ratioChart.forceX([0, jsonObj.OrderAll.length]);
 
             d3.select('#chart1 svg')
-                    .datum(randomData(jsonObj, [0]))
+                    .datum(myData)
                     .transition().duration(700)
                     .call(ratioChart);
             nv.utils.windowResize(ratioChart.update);
@@ -92,6 +94,8 @@
 
         //2nd Plot
         nv.addGraph(function () {
+            var myData = randomData2(jsonObj, [0]);
+            var minMax = getMinMax(myData);
             areaChart = nv.models.scatterChart()
                     .showDistX(false)
                     .showDistY(true)
@@ -106,11 +110,11 @@
                     .tickFormat(d3.format('.02f'))
                     .axisLabel('Area');
 
-            //ratioChart.forceY([0, 100]);
+            areaChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
             //ratioChart.forceX([0, jsonObj.OrderAll.length]);
 
             d3.select('#chart2 svg')
-                    .datum(randomData2(jsonObj, [0]))
+                    .datum(myData)
                     .transition().duration(700)
                     .call(areaChart);
             nv.utils.windowResize(areaChart.update);
@@ -130,16 +134,34 @@
         });
     });
 
+    function getMinMax(data) {
+        var minY, maxY;
+        data.forEach(function (d) {
+            minY = maxY = d.values[0].y
+            d.values.forEach(function (s) {
+                minY = Math.min(minY, s.y);
+                maxY = Math.max(maxY, s.y);
+            });
+        });
+        return { min: minY, max: maxY}
+    }
+
     function redraw(obj, idx) {
+        var ratioData = randomData(obj, [idx]);
+        var minMax = getMinMax(ratioData);
         d3.select('#chart1 svg')
                 .datum(randomData(obj, [idx]))
                 .transition().duration(800)
                 .call(ratioChart);
+        ratioChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
         ratioChart.update();
+        var areaData = randomData2(obj, [idx]);
+        minMax = getMinMax(areaData);
         d3.select('#chart2 svg')
                 .datum(randomData2(obj, [idx]))
                 .transition().duration(800)
                 .call(areaChart);
+        areaChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
         areaChart.update();
     }
 
@@ -159,7 +181,11 @@
             for (j = 0; j < objX.Ratio.length; j++) {
                 var yVal = objX.Ratio[j][tcompsIdx[i]];
                 yVal = $.isNumeric(yVal) ? yVal : null;
-                if (yVal && yVal < 0) console.log(j, yVal, tcompsIdx[i]);
+                if (!yVal) {
+                    //console.log("NaN value at > compound:" + tcompsIdx[i] + ",Ratio index:" + j, i, objX.Ratio[j][tcompsIdx[i]]);
+                    continue
+                } else if (yVal < 0)
+                    console.log("Negative value at:" + j, yVal);
                 data[i].values.push({
                     x: objX.OrderAll[j][0],
                     y: yVal,
@@ -188,7 +214,11 @@
             for (j = 0; j < objX.Ratio.length; j++) {
                 var yVal = objX.Area[j][tcompsIdx[i]];
                 yVal = $.isNumeric(yVal) ? yVal : null;
-                if (yVal && yVal < 0) console.log(j, yVal, tcompsIdx[i]);
+                if (!yVal) {
+                    //console.log("NaN value at > compound:" + tcompsIdx[i] + ",Ratio index:" + j, i, objX.Ratio[j][tcompsIdx[i]]);
+                    continue
+                } else if (yVal < 0)
+                    console.log("Negative value at:" + j, yVal);
                 data[i].values.push({
                     x: objX.OrderAll[j][0],
                     y: yVal,
