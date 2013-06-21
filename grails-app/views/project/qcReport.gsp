@@ -10,12 +10,11 @@
     <r:layoutResources/>
     <link rel="stylesheet" media="screen" href="${resource(dir: 'js/nvd3/src', file: 'nv.d3.css')}" type="text/css">
     <script src="${resource(dir: 'js/nvd3/lib', file: 'd3.v2.js')}"></script>
-    <script src="${resource(dir: 'js/nvd3/lib', file: 'fisheye.js')}"></script>
     <script src="${resource(dir: 'js/nvd3', file: 'nv.d3.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src', file: 'tooltip.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src', file: 'utils.js')}"></script>
-    <script src="${resource(dir: 'js/nvd3/src/models', file: 'axis.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'legend.js')}"></script>
+    <script src="${resource(dir: 'js/nvd3/src/models', file: 'axis.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'distribution.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'scatter.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'scatterChart.js')}"></script>
@@ -77,6 +76,7 @@
             //ratioChart.forceX([0, jsonObj.OrderAll.length]);
             ratioChart.sizeDomain([100, 100])
                     .sizeRange([100, 100]);
+            ratioChart.tooltipContent(tooltipContent);
 
             d3.select('#chart1 svg')
                     .datum(myData)
@@ -116,6 +116,7 @@
             //ratioChart.forceX([0, jsonObj.OrderAll.length]);
             areaChart.sizeDomain([100, 100])
                     .sizeRange([100, 100]);
+            areaChart.tooltipContent(tooltipContent);
 
             d3.select('#chart2 svg')
                     .datum(myData)
@@ -137,6 +138,13 @@
             redraw(jsonObj, selectedValues);
         });
     });
+
+    function tooltipContent(key, x, y, e, graph) {
+        return '<h3>' + key + '</h3>' +
+                '<p>Batch :' + jsonObj.batch[x] + ' Sample :' + jsonObj.samplabs[x] + '</p>' +
+                '<p>' + y + ' on ' + x + '</p>';
+
+    }
 
     function getMinMax(data) {
         var minY, maxY;
@@ -175,6 +183,7 @@
                 random = d3.random.normal();
 
         for (i = 0; i < tcompsIdx.length; i++) {
+
             data.push({
                 key: objX.tcomps[tcompsIdx[i]],
                 values: [],
@@ -184,6 +193,7 @@
 
             for (j = 0; j < objX.Ratio.length; j++) {
                 var yVal = objX.Ratio[j][tcompsIdx[i]];
+                // apply filter and show only QC Sample and Sample objX.is.QCSample
                 yVal = $.isNumeric(yVal) ? yVal : null;
                 if (!yVal) {
                     //console.log("NaN value at > compound:" + tcompsIdx[i] + ",Ratio index:" + j, i, objX.Ratio[j][tcompsIdx[i]]);
@@ -215,7 +225,7 @@
                 intercept: Math.random() - .5
             });
 
-            for (j = 0; j < objX.Ratio.length; j++) {
+            for (j = 0; j < objX.Area.length; j++) {
                 var yVal = objX.Area[j][tcompsIdx[i]];
                 yVal = $.isNumeric(yVal) ? yVal : null;
                 if (!yVal) {
