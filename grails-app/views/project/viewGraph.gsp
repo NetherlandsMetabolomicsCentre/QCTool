@@ -30,12 +30,14 @@
 </head>
 
 <body>
+<div align="center" valign="top" nowrap>
+    <h3>Blank Correction</h3>
 
-<div id="chart1">
-    <svg></svg>
+    <div id="chart1">
+        <svg></svg>
+    </div>
 </div>
 <g:form name="createSetting" action="addCorrectionSetting" controller="project" id="${project?.id}">
-
     <table>
         <tr>
             <td style="padding: 5px;" align="right" valign="top" nowrap>Blank Correction (in %):</td>
@@ -118,8 +120,8 @@
     var chart;
     var defaultCutoff =${MatlabObjX.opts.blank * 100};
     var graphData = [
-        { "key": "QC Samples", "bar": true, "values": barData() },
-        { "key": "Blank Correction Cutoff", "values": lineData()}
+        { "key": "Average area in blanks / average area in samples", "bar": true, "values": barData() },
+        { "key": "Threshold", "values": lineData()}
     ];
 
     function barData() {
