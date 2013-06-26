@@ -438,8 +438,8 @@ class ProjectController {
             def folderLocation = grailsApplication.config.dataFolder
             folderLocation = folderLocation.replaceAll(/"/, '')
             def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
-            def json = new File("${projectFolderLocation + File.separator }output" + File.separator + "correctedData.json").text
-            render json as String
+            def jsonStr = new File("${projectFolderLocation + File.separator }output" + File.separator + "correctedData.json").text
+            render JSON.parse(jsonStr) as JSON
         }
     }
 
@@ -451,8 +451,8 @@ class ProjectController {
             def folderLocation = grailsApplication.config.dataFolder
             folderLocation = folderLocation.replaceAll(/"/, '')
             def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
-            def json = new File("${projectFolderLocation + File.separator }output" + File.separator + "uncorrectedData.json").text
-            render json as String
+            def jsonStr = new File("${projectFolderLocation + File.separator }output" + File.separator + "uncorrectedData.json").text
+            render JSON.parse(jsonStr) as JSON
         }
     }
 
