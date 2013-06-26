@@ -20,15 +20,27 @@
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'scatterChart.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'scatterPlusLineChart.js')}"></script>
     <style>
-    #chart1 {
+    #ratioChart {
         margin: 0;
     }
 
-    #chart1 svg {
+    #ratioChart svg {
         height: 500px;
     }
 
-    #chart2 svg {
+    #areaChart {
+        margin: 0;
+    }
+
+    #areaChart svg {
+        height: 500px;
+    }
+
+    #rtChart {
+        margin: 0;
+    }
+
+    #rtChart svg {
         height: 500px;
     }
     </style>
@@ -38,15 +50,16 @@
 <script type="text/javascript">
     var X;
     var jsonObj;
-    var ratioChart, areaChart;
+    var qcSamplesRatioArr = [], qcSamplesAreaArr = [];
+    var ratioChart, areaChart, rtChart;
 
     <g:remoteFunction controller="project" id="${project.id}" action="getUncorrectedData" onSuccess="callbackGrid(data)"></g:remoteFunction>
     function callbackGrid(matlabX) {
-        jsonObj = $.parseJSON(matlabX);
+        jsonObj = matlabX;
         if (jsonObj.X) {
             jsonObj = jsonObj.X;
-            X = jsonObj;
         }
+        X = jsonObj;
         var comboList = $("#compound");
         $.each(jsonObj.tcomps, function (i, comp) {
             comboList.append($("<option></option>")
@@ -55,7 +68,7 @@
         });
 
         nv.addGraph(function () {
-            var myData = randomData(jsonObj, [0]);
+            var myData = getRatioData(jsonObj, 0);
             var minMax = getMinMax(myData);
             ratioChart = nv.models.scatterChart()
                     .showDistX(true)
@@ -78,25 +91,33 @@
                     .sizeRange([100, 100]);
             ratioChart.tooltipContent(tooltipContent);
 
-            d3.select('#chart1 svg')
+            d3.select('#ratioChart svg')
                     .datum(myData)
-                    .transition().duration(700)
+                    .transition().duration(500)
                     .call(ratioChart);
             nv.utils.windowResize(ratioChart.update);
 
             ratioChart.dispatch.on('stateChange', function (e) {
                 console.log('New State:', JSON.stringify(e));
             });
-//            ratioChart.dispatch.on('onClick', function (e) {
-//                console.log('New State:', JSON.stringify(e));
-//            });
+            ratioChart.scatter.dispatch.on('elementClick', function (_) {
+                console.log('Clicked Element:', JSON.stringify(_));
+            });
+            var wrap = d3.select('#ratioChart svg').selectAll('g.nv-wrap.nv-scatterChart').data([myData]);
+            var g = wrap.select('g');
+            g.select('.nv-background')
+                    .attr('width', 500)
+                    .attr('height', 500);
+
+            //g.select('.nv-background').on('mousemove', updateFisheye);
+            //g.select('.nv-background').on('click', function() { pauseFisheye = !pauseFisheye;});
 
             return ratioChart;
         });
 
         //2nd Plot
         nv.addGraph(function () {
-            var myData = randomData2(jsonObj, [0]);
+            var myData = getAreaData(jsonObj, 0);
             var minMax = getMinMax(myData);
             areaChart = nv.models.scatterChart()
                     .showDistX(false)
@@ -118,9 +139,9 @@
                     .sizeRange([100, 100]);
             areaChart.tooltipContent(tooltipContent);
 
-            d3.select('#chart2 svg')
+            d3.select('#areaChart svg')
                     .datum(myData)
-                    .transition().duration(700)
+                    .transition().duration(500)
                     .call(areaChart);
             nv.utils.windowResize(areaChart.update);
 
@@ -129,6 +150,43 @@
             });
 
             return areaChart;
+        });
+
+        //3rd Plot
+        nv.addGraph(function () {
+            var myData = getRtData(jsonObj, 0);
+            var minMax = getMinMax(myData);
+            rtChart = nv.models.scatterChart()
+                    .showDistX(false)
+                    .showDistY(true)
+                //.height(500)
+                    .useVoronoi(true)
+                    .color(d3.scale.category10().range());
+
+            rtChart.xAxis
+                    .tickFormat(d3.format('d'))
+                    .axisLabel('Order');
+            rtChart.yAxis
+                    .tickFormat(d3.format('.02f'))
+                    .axisLabel('Retention Time');
+
+            rtChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
+            //ratioChart.forceX([0, jsonObj.OrderAll.length]);
+            rtChart.sizeDomain([100, 100])
+                    .sizeRange([100, 100]);
+            rtChart.tooltipContent(tooltipContent);
+
+            d3.select('#rtChart svg')
+                    .datum(myData)
+                    .transition().duration(500)
+                    .call(rtChart);
+            nv.utils.windowResize(rtChart.update);
+
+            rtChart.dispatch.on('stateChange', function (e) {
+                console.log('New State:', JSON.stringify(e));
+            });
+
+            return rtChart;
         });
     }
 
@@ -141,7 +199,7 @@
 
     function tooltipContent(key, x, y, e, graph) {
         return '<h3>' + key + '</h3>' +
-                '<p>Batch :' + jsonObj.batch[x] + ' Sample :' + jsonObj.samplabs[x] + '</p>' +
+                '<p>Batch :' + jsonObj.batch[(x - 1)] + ' Sample :' + jsonObj.samplabs[(x - 1)] + '</p>' +
                 '<p>' + y + ' on ' + x + '</p>';
 
     }
@@ -159,87 +217,203 @@
     }
 
     function redraw(obj, idx) {
-        var ratioData = randomData(obj, [idx]);
+        var ratioData = getRatioData(obj, idx);
         var minMax = getMinMax(ratioData);
-        d3.select('#chart1 svg')
-                .datum(randomData(obj, [idx]))
-                .transition().duration(800)
+        d3.select('#ratioChart svg')
+                .datum(ratioData)
+                .transition().duration(500)
                 .call(ratioChart);
         ratioChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
         ratioChart.update();
-        var areaData = randomData2(obj, [idx]);
+
+        var areaData = getAreaData(obj, idx);
         minMax = getMinMax(areaData);
-        d3.select('#chart2 svg')
-                .datum(randomData2(obj, [idx]))
-                .transition().duration(800)
+        d3.select('#areaChart svg')
+                .datum(areaData)
+                .transition().duration(500)
                 .call(areaChart);
         areaChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
         areaChart.update();
+
+        var rtData = getRtData(obj, idx);
+        minMax = getMinMax(rtData);
+        d3.select('#rtChart svg')
+                .datum(rtData)
+                .transition().duration(500)
+                .call(rtChart);
+        rtChart.forceY([(minMax.min - minMax.min * .1 ), (minMax.max + minMax.max * .1 )]);
+        rtChart.update();
     }
 
-    function randomData(objX, tcompsIdx) { //# groups,# points per group
+    function getRatioData(objX, tcompsIdx) { //# groups,# points per group
         var data = [],
                 shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'square'],
                 random = d3.random.normal();
-
-        for (i = 0; i < tcompsIdx.length; i++) {
+        var batchArr = objX.batch.map(function (x) {
+            return parseInt(x);
+        });
+        for (i = 0; i < d3.max(batchArr); i++) {
 
             data.push({
-                key: objX.tcomps[tcompsIdx[i]],
+                key: "Batch " + (i + 1), //objX.tcomps[tcompsIdx[i]],
                 values: [],
                 slope: 1,
                 intercept: Math.random() - .5
             });
-
+            currentBatch = batchArr.filter(function (d) {
+                return d == i;
+            })
             for (j = 0; j < objX.Ratio.length; j++) {
-                var yVal = objX.Ratio[j][tcompsIdx[i]];
+                var b = objX.batch[j][0];
+                if ((b - 1 ) != i) continue;
+                var yVal = objX.Ratio[j][tcompsIdx];
                 // apply filter and show only QC Sample and Sample objX.is.QCSample
                 yVal = $.isNumeric(yVal) ? yVal : null;
                 if (!yVal) {
                     //console.log("NaN value at > compound:" + tcompsIdx[i] + ",Ratio index:" + j, i, objX.Ratio[j][tcompsIdx[i]]);
                     continue
                 } else if (yVal < 0)
-                    console.log("Negative value at:" + j, yVal);
-                data[i].values.push({
-                    x: objX.OrderAll[j][0],
-                    y: yVal,
-                    size: 1,
-                    shape: shapes[j % 6]
-                });
+                    console.log("Negative Ratio value at:" + j, yVal);
+
+                if (objX.is.QCsample[j][0] == true) {
+                    //console.log("QCsample Lab:", objX.samplabs[j]);
+                    qcSamplesRatioArr.push({
+                        x: objX.OrderAll[j][0],
+                        y: yVal,
+                        size: 1,
+                        shape: 'diamond'
+                    });
+                } else if (objX.is.Sample[j][0] == true) {
+                    data[i].values.push({
+                        x: objX.OrderAll[j][0],
+                        y: yVal,
+                        size: 1,
+                        shape: shapes[0]
+                    });
+                }
             }
+        }
+        //assume there are always QC Samples
+        if (qcSamplesRatioArr.length > 0) {
+            data.push({
+                key: "QC Samples",
+                values: qcSamplesRatioArr,
+                color: 'black',
+                slope: 1,
+                intercept: Math.random() - .5
+            });
         }
 
         return data;
     }
 
-    function randomData2(objX, tcompsIdx) { //# groups,# points per group
+    function getAreaData(objX, tcompsIdx) { //# groups,# points per group
         var data = [],
                 shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'square'],
                 random = d3.random.normal();
+        var batchArr = objX.batch.map(function (x) {
+            return parseInt(x);
+        });
 
-        for (i = 0; i < tcompsIdx.length; i++) {
+        for (i = 0; i < d3.max(batchArr); i++) {
             data.push({
-                key: objX.tcomps[tcompsIdx[i]],
+                key: "Batch " + (i + 1),
                 values: [],
                 slope: 1,
                 intercept: Math.random() - .5
             });
 
             for (j = 0; j < objX.Area.length; j++) {
-                var yVal = objX.Area[j][tcompsIdx[i]];
+                var b = objX.batch[j][0];
+                if ((b - 1 ) != i) continue;
+                var yVal = objX.Area[j][tcompsIdx];
                 yVal = $.isNumeric(yVal) ? yVal : null;
                 if (!yVal) {
                     //console.log("NaN value at > compound:" + tcompsIdx[i] + ",Ratio index:" + j, i, objX.Ratio[j][tcompsIdx[i]]);
                     continue
                 } else if (yVal < 0)
-                    console.log("Negative value at:" + j, yVal);
-                data[i].values.push({
-                    x: objX.OrderAll[j][0],
-                    y: yVal,
-                    size: 1,
-                    shape: shapes[j % 6]
-                });
+                    console.log("Negative Area value at:" + j, yVal);
+                if (objX.is.QCsample[j][0] == true) {
+                    qcSamplesAreaArr.push({
+                        x: objX.OrderAll[j][0],
+                        y: yVal,
+                        size: 1,
+                        shape: 'diamond'
+                    });
+                } else if (objX.is.Sample[j][0] == true) {
+                    data[i].values.push({
+                        x: objX.OrderAll[j][0],
+                        y: yVal,
+                        size: 1,
+                        shape: shapes[0]
+                    });
+                }
             }
+        }
+        //assume there are always QC Samples
+        if (qcSamplesAreaArr.length > 0) {
+            data.push({
+                key: "QC Samples",
+                values: qcSamplesAreaArr,
+                color: 'black',
+                slope: 1,
+                intercept: Math.random() - .5
+            });
+        }
+
+        return data;
+    }
+    function getRtData(objX, tcompsIdx) { //# groups,# points per group
+        var data = [],
+                shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'square'],
+                random = d3.random.normal();
+        var batchArr = objX.batch.map(function (x) {
+            return parseInt(x);
+        });
+
+        for (i = 0; i < d3.max(batchArr); i++) {
+            data.push({
+                key: "Batch " + (i + 1),
+                values: [],
+                slope: 1,
+                intercept: Math.random() - .5
+            });
+
+            for (j = 0; j < objX.Area.length; j++) {
+                var b = objX.batch[j][0];
+                if ((b - 1 ) != i) continue;
+                var yVal = objX.RT[j][tcompsIdx];
+                yVal = $.isNumeric(yVal) ? yVal : null;
+                if (!yVal) {
+                    continue
+                } else if (yVal < 0)
+                    console.log("Negative RT value at:" + j, yVal);
+                if (objX.is.QCsample[j][0] == true) {
+                    qcSamplesAreaArr.push({
+                        x: objX.OrderAll[j][0],
+                        y: yVal,
+                        size: 1,
+                        shape: 'diamond'
+                    });
+                } else if (objX.is.Sample[j][0] == true) {
+                    data[i].values.push({
+                        x: objX.OrderAll[j][0],
+                        y: yVal,
+                        size: 1,
+                        shape: shapes[0]
+                    });
+                }
+            }
+        }
+        //assume there are always QC Samples
+        if (qcSamplesAreaArr.length > 0) {
+            data.push({
+                key: "QC Samples",
+                values: qcSamplesAreaArr,
+                color: 'black',
+                slope: 1,
+                intercept: Math.random() - .5
+            });
         }
 
         return data;
@@ -299,14 +473,19 @@
                 </tr>
             </table>
 
-            <div id="chart1">
+            <div id="ratioChart">
                 <svg></svg>
             </div>
 
             <br>
             <strong>Area Graph</strong>
 
-            <div id="chart2">
+            <div id="areaChart">
+                <svg></svg>
+            </div>
+            <strong>RT Graph</strong>
+
+            <div id="rtChart">
                 <svg></svg>
             </div>
         </div>
