@@ -1,9 +1,9 @@
+import nl.nmc.*
 import nl.nmc.general.config.AdditiveStabilizer
 import nl.nmc.general.config.GeneralConfig
 import nl.nmc.general.config.Matrix
 import nl.nmc.general.config.Platform
 import nl.nmc.importers.GeneralConfigImporter
-import nl.nmc.*
 
 class BootStrap {
     public static def generalConfig;
@@ -66,9 +66,9 @@ class BootStrap {
                 ]
                 return JOB_MAP
             }
-            } catch (e) {
-                println e.dump()
-            }
+        } catch (e) {
+            println e.dump()
+        }
     }
     def destroy = {
     }
@@ -79,7 +79,6 @@ class BootStrap {
         def generalConfigInstance = new GeneralConfig()
 
         def platformMapList = importer.getPlatformList()
-        println "platformMapList = ${platformMapList}"
 
         platformMapList.each { Map platformParams ->
             def platform = new Platform(platformParams)
@@ -87,7 +86,6 @@ class BootStrap {
         }
         generalConfigInstance.errors
         def matrixMapList = importer.matrixList
-        println "matrixMapList = ${matrixMapList}"
 
         matrixMapList.each { Map matrixParams ->
             def matrix = new Matrix(matrixParams)
