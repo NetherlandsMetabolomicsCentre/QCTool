@@ -105,12 +105,28 @@
             });
             var wrap = d3.select('#ratioChart svg').selectAll('g.nv-wrap.nv-scatterChart').data([myData]);
             var g = wrap.select('g');
-            g.select('.nv-background')
-                    .attr('width', 500)
-                    .attr('height', 500);
+            g.select('.nv-background');
+//            g.append("svg:rect")
+//                    .attr("y", -7)
+//                    .attr("x",250)
+//                    .attr("height", 15)
+//                    .attr("width", 15)
+//                    .style("fill", 'orange')
+//                    //.on("click", click)
+//                    .attr("id","checkboxnode");
+            g.append("foreignObject")
+                    .attr("width", 200)
+                    .attr("height", 100)
+                    .attr("y",-7)
+                    .attr("x",20)
+                    .append("xhtml:body")
+                    .style("margin-left","0px")
+                    .html("<label><input type=\"checkbox\" name=\"check\" checked value=\"check\" /> Running Samples</label>")
+                    .on("click", function(d, i){
+                        g.select("#check").node().checked;
+                        console.log($("#check"));
+                    });
 
-            //g.select('.nv-background').on('mousemove', updateFisheye);
-            //g.select('.nv-background').on('click', function() { pauseFisheye = !pauseFisheye;});
 
             return ratioChart;
         });
