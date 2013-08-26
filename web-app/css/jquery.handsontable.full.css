@@ -1,12 +1,12 @@
 /**
- * Handsontable 0.9.6
+ * Handsontable 0.9.15
  * Handsontable is a simple jQuery plugin for editable tables with basic copy-paste compatibility with Excel and Google Docs
  *
  * Copyright 2012, Marcin Warpechowski
  * Licensed under the MIT license.
  * http://handsontable.com/
  *
- * Date: Tue Jun 18 2013 18:56:33 GMT+0200 (Central European Daylight Time)
+ * Date: Mon Aug 26 2013 00:13:33 GMT+0200 (Central European Daylight Time)
  */
 
 .handsontable {
@@ -16,22 +16,29 @@
   font-size: 13px;
 }
 
-.handsontable.hidden {
-  display: none;
+.handsontable.htAutoColumnSize {
+  visibility: hidden;
   left: 0;
   position: absolute;
   top: 0;
 }
 
-.handsontable * {
+.handsontable table,
+.handsontable tbody,
+.handsontable thead,
+.handsontable td,
+.handsontable th,
+.handsontable div
+{
   box-sizing: content-box;
   -webkit-box-sizing: content-box;
   -moz-box-sizing: content-box;
 }
 
-.handsontable table {
+.handsontable table.htCore {
   border-collapse: separate; /*it must be separate, otherwise there are offset miscalculations in WebKit: http://stackoverflow.com/questions/2655987/border-collapse-differences-in-ff-and-webkit*/
   position: relative;
+  /*this actually only changes appearance of user selection - does not make text unselectable
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
@@ -70,7 +77,7 @@
   vertical-align: top;
   overflow: hidden;
   outline-width: 0;
-  white-space: pre; /* preserve new line character in cell */
+  white-space: pre-line; /* preserve new line character in cell */
 }
 
 .handsontable td.htInvalid {
@@ -161,18 +168,33 @@
 
 .handsontable .manualColumnResizer {
   position: absolute;
-  right: -1px;
   top: 0;
-  background-color: transparent;
-  width: 5px;
-  height: 25px;
-  z-index: 999;
   cursor: col-resize;
 }
 
-.handsontable th .manualColumnResizer:hover,
-.handsontable .manualColumnResizerLine .manualColumnResizer {
+.handsontable .manualColumnResizerHandle {
+  background-color: transparent;
+  width: 5px;
+  height: 25px;
+}
+
+.handsontable .manualColumnResizer:hover .manualColumnResizerHandle,
+.handsontable .manualColumnResizer.active .manualColumnResizerHandle {
   background-color: #AAB;
+}
+
+.handsontable .manualColumnResizerLine {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background-color: #AAB;
+  display: none;
+  width: 0;
+  border-right: 1px dashed #777;
+}
+
+.handsontable .manualColumnResizer.active .manualColumnResizerLine {
+  display: block;
 }
 
 .handsontable .columnSorting:hover {
