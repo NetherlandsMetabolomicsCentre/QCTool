@@ -119,11 +119,12 @@
             else if (prop === 'cal' && value === true) onProp = 'cal';
             else if (prop === 'blank' && value === true) onProp = 'blank';
             else if (prop === 'sample' && value === true) onProp = 'sample';
-            $(td.parentNode.childNodes).each(function () {
-                if (this.tagName != 'TH') {
-                    this.style.backgroundColor = colorArr[onProp];
-                }
-            });
+            if (td.parentNode)
+                $(td.parentNode.childNodes).each(function () {
+                    if (this.tagName != 'TH') {
+                        this.style.backgroundColor = colorArr[onProp];
+                    }
+                });
             Handsontable.CheckboxCell.renderer.apply(this, arguments);
         }
         var container = $("#sampleList");

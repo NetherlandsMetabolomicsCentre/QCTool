@@ -117,13 +117,14 @@
             g.append("foreignObject")
                     .attr("width", 200)
                     .attr("height", 100)
-                    .attr("y",-7)
-                    .attr("x",20)
+                    .attr("y", -7)
+                    .attr("x", 20)
                     .append("xhtml:body")
-                    .style("margin-left","0px")
-                    .html("<label><input type=\"checkbox\" name=\"check\" checked value=\"check\" /> Running Samples</label>")
-                    .on("click", function(d, i){
+                    .style("margin-left", "0px")
+                    .html("<label><input type=\"checkbox\" name=\"check\" id=\"check\" checked value=\"check\" /> Running Samples</label>")
+                    .on("click", function (d, i) {
                         g.select("#check").node().checked;
+                        console.log(g.select("#check").node().checked);
                         console.log($("#check"));
                     });
 
@@ -462,6 +463,16 @@
     //        return data;
     //    }
 
+    $(function () {
+        $("#settingform").submit(function (event) {
+            event.preventDefault();
+            $('#advancedSettings').modal('hide');
+        })
+    });
+
+    function submitForm() {
+        $('#advancedSettings').modal('hide');
+    }
 </script>
 
 <div class="tabbable tabs-left">
@@ -488,6 +499,53 @@
                     <td></td>
                 </tr>
             </table>
+            <a href="#advancedSettings" role="button" data-toggle="modal"
+               class="btn btn-warning pull-right">Settings</a>
+
+            <!-- Advanced Setting Modal -->
+            <div id="advancedSettings" class="modal hide fade" tabindex="-1" role="dialog"
+                 aria-labelledby="advancedSettings"
+                 aria-hidden="true">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <ul class="nav nav-pills pull-right">
+                        <li class="active">
+                            <a href="#screenSetting" data-toggle="pill">Screen settings</a>
+                        </li>
+                    </ul>
+                    <h4>Multiple Graphs on the same screen</h4>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row-fluid">
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="screenSetting">
+                                <div class="control-group">
+                                    <form id="settingform" action="#" title="">
+                                        <fieldset>
+                                            <div class="controls controls-row">
+                                                <label class="checkbox">
+                                                    <input type="checkbox" id="showAreaGraph"> Area
+                                                </label>
+                                                <label class="checkbox">
+                                                    <input type="checkbox" id="showRTGraph"> Retention Time
+                                                </label>
+                                                <label class="checkbox">
+                                                    <input type="checkbox" id="showRatioUncGraph"> Ratio (uncorrected)
+                                                </label>
+                                                <label class="checkbox">
+                                                    <input type="checkbox" id="showRatioGraph"> Ratio (QC corrected)
+                                                </label>
+                                            </div>
+                                            <button type="submit" class="btn btn-warning">Save</button>
+                                        </fieldset>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div id="ratioChart">
                 <svg></svg>
