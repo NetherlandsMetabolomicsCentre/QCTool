@@ -52,6 +52,13 @@ class ProjectController {
         [project: Project.get(params.id)]
     }
 
+    def qualityControlReport() {
+        if (!params?.id) {
+            redirect(action: "index", params: params)
+        }
+        [project: Project.get(params.id)]
+    }
+
     def addSetting() {
         def project = Project.get(params.id) ?: null
         if (params?.submit == "createProjectSetting" && project) {
@@ -454,6 +461,23 @@ class ProjectController {
             def jsonStr = new File("${projectFolderLocation + File.separator }output" + File.separator + "uncorrectedData.json").text
             render JSON.parse(jsonStr) as JSON
         }
+    }
+
+    def getDashboardData = {
+        if (!params?.id) {
+        }
+        /*
+        def project = Project.get(params.id) ?: null
+        if (project) {
+            def folderLocation = grailsApplication.config.dataFolder
+            folderLocation = folderLocation.replaceAll(/"/, '')
+            def projectFolderLocation = "${folderLocation + File.separator }${project.name}"
+            def jsonStr = new File("${projectFolderLocation + File.separator }output" + File.separator + "uncorrectedData.json").text
+            render JSON.parse(jsonStr) as JSON
+        }
+        */
+        def jsonStr = new File("/Users/ishtiaq/Dropbox/QCtoolIshtiaque/mzQuality" + File.separator + "Dashboard.json").text
+        render JSON.parse(jsonStr) as JSON
     }
 
     def listSamples = {
