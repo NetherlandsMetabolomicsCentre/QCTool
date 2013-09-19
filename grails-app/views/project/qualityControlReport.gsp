@@ -9,7 +9,7 @@
     <g:javascript library="application"/>
     <r:layoutResources/>
     <link rel="stylesheet" media="screen" href="${resource(dir: 'js/nvd3/src', file: 'nv.d3.css')}" type="text/css">
-    <script src="${resource(dir: 'js/nvd3/lib', file: 'd3.v2.js')}"></script>
+    <script src="${resource(dir: 'js/nvd3/lib', file: 'd3.v3.js')}"></script>
     <script src="${resource(dir: 'js/nvd3', file: 'nv.d3.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src', file: 'tooltip.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src', file: 'utils.js')}"></script>
@@ -36,7 +36,14 @@
         height: 500px;
     }
 
-    #chart1 svg {
+    #ISAreaMultiChart svg {
+        height: 500px;
+        margin: 10px;
+        min-width: 100px;
+        min-height: 100px;
+    }
+
+    #QCfitMultiChart svg {
         height: 500px;
         margin: 10px;
         min-width: 100px;
@@ -51,7 +58,7 @@
     var Dashboard;
     var jsonObj;
     var qcSamplesRatioArr = [], qcSamplesAreaArr = [];
-    var ratioChart, ratioQChart, areaChart, rtChart;
+    var qcFitRatioChart, isAreaChart;
 
     var chartsSettingArr = {   // charts array and its default values
         ratioChart: {
@@ -93,6 +100,17 @@
     };
 
     <g:remoteFunction controller="project" id="${project.id}" action="getDashboardData" onSuccess="callbackGrid(data)"></g:remoteFunction>
+
+    /*
+     var url = "https://dl.dropboxusercontent.com/s/afaxphho9v2rrhf/Dashboard.json";
+     d3.json(url, function (error, jsonData) {
+     if (error) return console.warn(error);
+     else {
+     callbackGrid(jsonData);
+     }
+     });
+     */
+
     function callbackGrid(matlabX) {
         jsonObj = matlabX;
         if (jsonObj.Dashboard) {
@@ -108,14 +126,16 @@
         });
 
         drawVisibleCharts();
-        drawMultiChart();
+        drawISAreaMultiChart();
+        drawQcFitMultiChart();
     }
 
     $(function () {
         $("#compound").change(function () {
             var selectedValues = $('#compound').val();
             drawVisibleCharts();
-            drawMultiChart();
+            drawISAreaMultiChart();
+            drawQcFitMultiChart();
         });
     });
 
@@ -211,9 +231,16 @@
                             var b = parseInt(sampleTypeObj.batch[j]);
                             if ((b - 1 ) != i) continue;
                             var yVal = responseVals[j];
+                            // remove NaN values
+                            yVal = $.isNumeric(yVal) ? yVal : null;
+                            if (!yVal) {
+                                console.warn("NaN value at compound:" + sampleTypeObj.samplabs[j] + ", index:" + j, "Batch:" + b);
+                                continue;
+                            }
                             data[i].values.push({
                                         x: sampleTypeObj.OrderAll[j],
-                                        y: yVal, sampLab: sampleTypeObj.samplabs[j],
+                                        y: yVal,
+                                        sampLab: sampleTypeObj.samplabs[j],
                                         batch: b
                                     }
                             )
@@ -226,8 +253,13 @@
         else { // single obj will be return
             // make response obj according
             if (responseVals && sampleTypeObj) {
+                var mean = d3.mean(responseVals);
+                var v = variance(responseVals);
+
                 data.push({
                     key: sampleType,
+                    mean: mean,
+                    variance: v,
                     values: []
                 });
                 /*
@@ -237,10 +269,16 @@
                  var sd = Math.sqrt(v);
                  console.log("Standard Deviation->", sd);
                  */
-                $.each(responseVals, function (idx, val) {
+                $.each(responseVals, function (idx, yVal) {
+                    // remove NaN values
+                    yVal = $.isNumeric(yVal) ? yVal : null;
+                    if (!yVal) {
+                        console.warn("NaN value at compound:" + sampleTypeObj.samplabs[idx] + ", index:" + idx, "Batch:" + sampleTypeObj.batch[idx]);
+                        return
+                    }
                     data[0].values.push({
                         x: sampleTypeObj.OrderAll[idx],
-                        y: val,
+                        y: yVal,
                         sampLab: sampleTypeObj.samplabs[idx],
                         batch: sampleTypeObj.batch[idx]
                     })
@@ -388,7 +426,7 @@
             var selectedMetabolite = $('#compound').val();
             if (chartSetting.visible) {
                 var btData = filterMetaboliteData(Dashboard, selectedMetabolite, chartSetting.sampleType, chartSetting.key, chartSetting.groupBy);
-                var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', 'Ratio');
+                var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', chartSetting.key);
                 qcSampleData = $.extend(qcSampleData[0], {color: 'black', slope: 1});
                 btData = btData.concat(qcSampleData);
                 drawGraph(btData, chartSetting);
@@ -400,51 +438,11 @@
         });
 
     }
-    var points = 10 + Math.random() * 100;
-    var testdata = stream_layers(7, points, .1).map(function (data, i) {
-        return {
-            key: 'Stream' + i,
-            values: data.map(function (a) {
-                a.y = a.y * (i <= 1 ? -1 : 1);
-                return a
-            })
-        };
-    });
 
-    testdata[0].type = "line"
-    testdata[0].yAxis = 1
-    testdata[1].type = "area"
-    testdata[1].yAxis = 1
-    testdata[2].type = "line"
-    testdata[2].yAxis = 1
-    testdata[3].type = "scatter"
-    testdata[3].yAxis = 2
-    testdata[4].type = "scatter"
-    testdata[4].yAxis = 2
-    testdata[5].type = "bar"
-    testdata[5].yAxis = 2
-    testdata[6].type = "scatter"
-    testdata[6].yAxis = 1
-
-    $.each(testdata, function (i, obj) {
-        if (obj.type === "scatter") {
-            for (var j = 0; j < points; j++) {
-                obj.values[j] = {
-                    x: random(),
-                    y: random(),
-                    size: 1,
-                    shape: shapes[j % 6]
-                };
-            }
-        } else if (obj.type === "bar") {
-            // obj = $.extend(obj, {color: 'black'});
-        }
-    });
-
-    function drawMultiChart() {
+    function drawISAreaMultiChart() {
         var selectedMetabolite = $('#compound').val();
         var btData = filterMetaboliteData(Dashboard, selectedMetabolite, chartsSettingArr.areaChart.sampleType, chartsSettingArr.areaChart.key, chartsSettingArr.areaChart.groupBy);
-        var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', 'Ratio');
+        var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', chartsSettingArr.areaChart.key);
         var isAreaData = filterMetaboliteData(Dashboard, selectedMetabolite, 'All', 'ISArea');
         isAreaData[0].key = "ISArea";
         $.each(btData, function (i, d) {
@@ -453,40 +451,133 @@
         isAreaData = $.extend(isAreaData[0], {type: 'line', yAxis: 2});
         qcSampleData = $.extend(qcSampleData[0], {color: 'black', type: 'scatter', yAxis: 1});
         btData = btData.concat(qcSampleData);
-        testdata = btData.concat(isAreaData);
+        var data = btData.concat(isAreaData);
+        if (isAreaChart !== undefined) {  // exist update it instead
+            var chart = isAreaChart;
+            chart.update();
+            d3.select('#ISAreaMultiChart svg')
+                    .datum(data)
+                    .transition().duration(500)
+                    .call(chart);
+        } else {
+            nv.addGraph(function () {
+                var chart = nv.models.multiChart()
+                        .margin({top: 30, right: 60, bottom: 50, left: 70})
+                        .color(d3.scale.category10().range());
 
-        nv.addGraph(function () {
-            var chart = nv.models.multiChart()
-                    .margin({top: 30, right: 60, bottom: 50, left: 70})
-                    .color(d3.scale.category10().range());
+                chart.xAxis
+                        .tickFormat(d3.format('d'))
+                        .axisLabel("Order");
 
-            chart.xAxis
-                    .tickFormat(d3.format('d'))
-                    .axisLabel("Order");
+                chart.yAxis1
+                        .tickFormat(d3.format('.02f'))
+                        .axisLabel("Area");
 
-            chart.yAxis1
-                    .tickFormat(d3.format('.02f'))
-                    .axisLabel("Area");
-
-            chart.yAxis2
-                    .tickFormat(d3.format('.02f'))
-                    .axisLabel("ISArea");
-
-
-            chart.scatter1.sizeDomain([100, 100])
-                    .sizeRange([100, 100]);
-
-            chart.scatter2.sizeDomain([100, 100])
-                    .sizeRange([100, 100]);
-
-            chart.tooltipContent(tooltipContent);
+                chart.yAxis2
+                        .tickFormat(d3.format('.02f'))
+                        .axisLabel("ISArea");
 
 
-            d3.select('#chart1 svg')
-                    .datum(testdata)
-                    .transition().duration(500).call(chart);
-            return chart;
+                chart.scatter1.sizeDomain([100, 100])
+                        .sizeRange([100, 100]);
+
+                chart.scatter2.sizeDomain([100, 100])
+                        .sizeRange([100, 100]);
+
+                chart.tooltipContent(tooltipContent);
+
+
+                d3.select('#ISAreaMultiChart svg')
+                        .datum(data)
+                        .transition().duration(500).call(chart);
+                isAreaChart = chart;
+                return chart;
+            });
+        }
+    }
+
+    function drawQcFitMultiChart() {
+        var selectedMetabolite = $('#compound').val();
+        var btData = filterMetaboliteData(Dashboard, selectedMetabolite, chartsSettingArr.ratioChart.sampleType, chartsSettingArr.ratioChart.key, chartsSettingArr.ratioChart.groupBy);
+        var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', chartsSettingArr.ratioChart.key);
+        var qcFitData = filterMetaboliteData(Dashboard, selectedMetabolite, 'All', 'QCfit');
+        qcFitData[0].key = "QCfit";
+        $.each(btData, function (i, d) {
+            d = $.extend(d, {type: 'scatter', yAxis: 1});
         });
+        qcFitData = $.extend(qcFitData[0], {type: 'line', yAxis: 1});
+        qcSampleData = $.extend(qcSampleData[0], {color: 'black', type: 'scatter', yAxis: 1});
+        btData = btData.concat(qcSampleData);
+        var data = btData.concat(qcFitData);
+
+        var meanDataPoints = {key: "Mean", color: 'black', type: 'line', yAxis: 1, values: []},
+                meanPlus2StdDataPoints = {key: "Mean+2Std", color: 'black', type: 'line', yAxis: 1, values: []},
+                meanMinus2StdDataPoints = {key: "Mean-2Std", color: 'black', type: 'line', yAxis: 1, values: []};
+
+        $.each(qcSampleData.values, function (i, val) {
+            meanDataPoints.values.push({
+                x: val.x,
+                y: qcSampleData.mean,
+                sampLab: val.sampLab,
+                batch: val.batch
+
+            });
+            meanPlus2StdDataPoints.values.push({
+                x: val.x,
+                y: qcSampleData.mean + 2 * Math.sqrt(qcSampleData.variance),
+                sampLab: val.sampLab,
+                batch: val.batch
+
+            });
+            meanMinus2StdDataPoints.values.push({
+                x: val.x,
+                y: qcSampleData.mean - 2 * Math.sqrt(qcSampleData.variance),
+                sampLab: val.sampLab,
+                batch: val.batch
+
+            });
+        });
+        var data = data.concat(meanDataPoints);
+        var data = data.concat(meanPlus2StdDataPoints);
+        var data = data.concat(meanMinus2StdDataPoints);
+
+        if (qcFitRatioChart !== undefined) {  // exist update it instead
+            var chart = qcFitRatioChart;
+            chart.update();
+            d3.select('#QCfitMultiChart svg')
+                    .datum(data)
+                    .transition().duration(500)
+                    .call(chart);
+        } else {
+            nv.addGraph(function () {
+                var chart = nv.models.multiChart()
+                        .margin({top: 30, right: 60, bottom: 50, left: 70})
+                        .color(d3.scale.category10().range());
+
+                chart.xAxis
+                        .tickFormat(d3.format('d'))
+                        .axisLabel("Order");
+
+                chart.yAxis1
+                        .tickFormat(d3.format('.02f'))
+                        .axisLabel(chartsSettingArr.ratioChart.yAxisLabel);
+
+                chart.scatter1.sizeDomain([100, 100])
+                        .sizeRange([100, 100]);
+
+                chart.scatter2.sizeDomain([100, 100])
+                        .sizeRange([100, 100]);
+
+                chart.tooltipContent(tooltipContent);
+
+
+                d3.select('#QCfitMultiChart svg')
+                        .datum(data)
+                        .transition().duration(500).call(chart);
+                qcFitRatioChart = chart;
+                return chart;
+            });
+        }
     }
 </script>
 
@@ -565,7 +656,11 @@
 
             <div id="DashboardChartArea"></div>
 
-            <div id="chart1">
+            <div id="ISAreaMultiChart">
+                <svg></svg>
+            </div>
+
+            <div id="QCfitMultiChart">
                 <svg></svg>
             </div>
 
