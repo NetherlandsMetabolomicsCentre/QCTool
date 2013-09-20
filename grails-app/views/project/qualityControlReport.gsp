@@ -87,8 +87,10 @@
         drawISAreaMultiChart();
         drawQcFitMultiChart();
         drawFocusChart();
+        $('#pleaseWaitDialog').modal('hide');
     }
     $(function () {
+        $('#pleaseWaitDialog').modal('show');
         $("#compound").change(function () {
             var selectedValues = $('#compound').val();
             drawVisibleCharts();
@@ -311,6 +313,32 @@
                                             <button type="submit" class="btn btn-warning">Save</button>
                                         </fieldset>
                                     </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wait Modal -->
+            <div id="pleaseWaitDialog" class="modal hide fade" tabindex="-2" role="dialog"
+                 aria-labelledby="pleaseWaitDialog"
+                 aria-hidden="true">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4>Processing...</h4>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row-fluid">
+                        <div class="tab-content">
+                            <div class="tab-pane active">
+                                <div class="control-group">
+                                    <div class="progress progress-striped active">
+                                        <div class="bar" style="width: 100%;"></div>
+                                    </div>
+
+                                    <p>Please wait! we are loading a large Metabolites / Compound list</p>
                                 </div>
                             </div>
                         </div>
