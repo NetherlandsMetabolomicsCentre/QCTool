@@ -5,7 +5,7 @@ nv.models.multiChart = function () {
     //------------------------------------------------------------
 
     var margin = {top: 30, right: 20, bottom: 50, left: 60},
-        color = d3.scale.category20().range(),
+        color = nv.utils.defaultColor(),
         width = null,
         height = null,
         showLegend = true,
@@ -140,7 +140,7 @@ nv.models.multiChart = function () {
             var g = wrap.select('g');
 
             if (showLegend) {
-                legend.width(availableWidth / 2);
+                legend.width(availableWidth);
 
                 g.select('.legendWrap')
                     .datum(data.map(function (series) {
@@ -157,7 +157,7 @@ nv.models.multiChart = function () {
                 }
 
                 g.select('.legendWrap')
-                    .attr('transform', 'translate(' + ( availableWidth / 2 ) + ',' + (-margin.top) + ')');
+                    .attr('transform', 'translate(0,' + (-margin.top) + ')');
             }
 
 
