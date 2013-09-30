@@ -24,6 +24,7 @@
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'scatterPlusLineChart.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/lib', file: 'crossfilter.min.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'lineWithFocusChart.js')}"></script>
+    <script src="${resource(dir: 'js', file: 'scatterWithFocusChart.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/examples', file: 'stream_layers.js')}"></script>
 
     <style>
@@ -33,10 +34,6 @@
 
     .dashboardChart {
         margin: 0;
-    }
-
-    svg {
-        height: 500px;
     }
 
     #ISAreaMultiChart svg {
@@ -52,11 +49,49 @@
         min-width: 100px;
         min-height: 100px;
     }
+
+    .highlight {
+        stroke-width: 7px;
+        stroke: #f00;
+        fill-opacity: .95 !important;
+        stroke-opacity: .95 !important;
+    }
+
+    circle {
+        -webkit-transition: fill-opacity 250ms linear;
+    }
+
+    .selecting circle {
+        fill-opacity: .2;
+    }
+
+    .selecting circle.selected {
+        stroke: #f00;
+    }
+
+    .resize path {
+        fill: #666;
+        fill-opacity: .8;
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+
+    .axis path, .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+
+    .brush .extent {
+        fill-opacity: .125;
+        shape-rendering: crispEdges;
+    }
     </style>
 </head>
 
 <body>
 <script type="text/javascript">
+    var focusChart;
     <g:remoteFunction controller="project" id="${project.id}" action="getDashboardData" onSuccess="callbackGrid(data)"></g:remoteFunction>
 
     /*
@@ -86,7 +121,8 @@
         drawVisibleCharts();
         drawISAreaMultiChart();
         drawQcFitMultiChart();
-        drawFocusChart();
+        //drawFocusChart();
+        drawContextBrush();
         $('#pleaseWaitDialog').modal('hide');
     }
     $(function () {
@@ -96,6 +132,7 @@
             drawVisibleCharts();
             drawISAreaMultiChart();
             drawQcFitMultiChart();
+            //drawFocusChart();
         });
     });
 
@@ -127,122 +164,171 @@
     });
 
     function drawFocusChart() {
-        nv.addGraph(function () {
-            var chart = nv.models.lineWithFocusChart();
 
-            chart.xAxis
-                    .tickFormat(d3.format(',f'));
-            chart.x2Axis
-                    .tickFormat(d3.format(',f'));
+        //var data = filterMetaboliteData(Dashboard, 0, 'All', 'ISArea');
+        //data[0].key = "ISArea";
+        var selectedMetabolite = $('#compound').val();
+        var btData = filterMetaboliteData(Dashboard, selectedMetabolite, chartsSettingArr.ratioChart.sampleType, chartsSettingArr.ratioChart.key, chartsSettingArr.ratioChart.groupBy);
+        var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', chartsSettingArr.ratioChart.key);
+        qcSampleData = $.extend(qcSampleData[0], {color: 'black', slope: 1});
+        btData = btData.concat(qcSampleData);
 
-            chart.yAxis
-                    .tickFormat(d3.format(',.2f'));
-            chart.y2Axis
-                    .tickFormat(d3.format(',.2f'));
-
-            var dimension = testCrossfilterData().data;
-            /*
-
-             var data = normalizeData(dimension.top(Infinity),
-             [
-             {
-             name: 'Stream #1',
-             key: 'stream1'
-             },
-             {
-             name: 'Stream #2',
-             key: 'stream2'
-             },
-             {
-             name: 'Stream #3',
-             key: 'stream3'
-             }
-             ], 'x');
-             */
-            var data = filterMetaboliteData(Dashboard, 0, 'All', 'ISArea');
-            data[0].key = "ISArea";
+        if (focusChart !== undefined) {  // exist update it instead
+            var chart = focusChart;
+            var minMax = getMinMax(btData);
+            chart.forceY([(minMax.minY - minMax.minY * .5 ), (minMax.maxY + minMax.maxY * .5 )]);
+            chart.update();
             d3.select('#chart svg')
-                    .datum(data)
+                    .datum(btData)
                     .transition().duration(500)
                     .call(chart);
+        } else {
+            nv.addGraph(function () {
+                var chart = nv.models.scatterWithFocusChart();
 
-            nv.utils.windowResize(chart.update);
+                chart.xAxis
+                        .tickFormat(d3.format('d'));
+                chart.x2Axis
+                        .tickFormat(d3.format('d'));
 
-            return chart;
-        });
+                chart.yAxis
+                        .tickFormat(d3.format(',.02f'));
+                chart.y2Axis
+                        .tickFormat(d3.format(',.2f'));
+
+                chart.scatter.sizeDomain([100, 100])
+                        .sizeRange([100, 100]);
+
+                chart.scatter2.sizeDomain([100, 100])
+                        .sizeRange([100, 100]);
+                var minMax = getMinMax(btData);
+                chart.forceY([(minMax.minY - minMax.minY * .5 ), (minMax.maxY + minMax.maxY * .5 )]);
+                d3.select('#chart svg')
+                        .datum(btData)
+                        .transition().duration(250)
+                        .call(chart);
+
+                nv.utils.windowResize(chart.update);
+                focusChart = chart;
+                return chart;
+            });
+        }
     }
 
-    extend = function (destination, source) {
-        for (var property in source) {
-            if (property in destination) {
-                if (typeof source[property] === "object" &&
-                        typeof destination[property] === "object") {
-                    destination[property] = extend(destination[property], source[property]);
-                } else {
-                    continue;
-                }
+    /*
+     *
+     * Let's create the context brush that will let us zoom and pan the chart
+     *
+     */
+
+    function drawContextBrush() {
+
+        var selectedMetabolite = $('#compound').val();
+        var data = Dashboard.metabolites[selectedMetabolite].All.OrderAll;
+        var dMin = d3.min(data);
+        var dMax = d3.max(data);
+        var margin = {top: 0, right: 60, bottom: 20, left: 60},
+                width = null,
+                height = 50 - margin.top - margin.bottom;
+
+        $('#contextBrush').prepend("<div class='row'>" +
+                "<div class='span00 text-center'>" +
+                "<p><span class='label label-info'>Select sample order window to zoom-in</span></p>" +
+                "</div></div>");
+
+
+        var svg = d3.select("#contextBrush svg")
+
+        var availableWidth = (width || parseInt(svg.style('width')) || 960) - margin.left - margin.right;
+
+        svg.attr("width", availableWidth + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom + 10)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var x = d3.scale.linear()
+                .domain([dMin, dMax])
+                .range([0, availableWidth]);
+
+        var y = d3.random.normal(height / 2, height / 8);
+
+        var brush = d3.svg.brush()
+                .x(x)
+            //.extent([20, 100])
+                .on("brushstart", brushstart)
+                .on("brush", brushmove)
+                .on("brushend", brushend);
+
+        var arc = d3.svg.arc()
+                .outerRadius(height / 2)
+                .startAngle(0)
+                .endAngle(function (d, i) {
+                    return i ? -Math.PI : Math.PI;
+                });
+
+        var g = svg.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.svg.axis()
+                        .scale(x)
+                        .orient("bottom")
+                        .tickFormat(d3.format('d'))
+                        //.tickSize(10)
+                        //.tickPadding(9)
+                );
+
+        var axisLabel = g.append('text')
+                .attr("class", "nv-axislabel")
+                .text("Order")
+                .attr('text-anchor', 'middle')
+                .attr('y', height)
+                .attr('x', availableWidth / 2);
+
+        var circle = svg.append("g").selectAll("circle")
+                .data(data)
+                .enter().append("circle")
+                .attr("r", 3.5)
+                .attr("transform", function (d) {
+                    //console.log(d);
+                    return "translate(" + x(d) + "," + y() + ")";
+                });
+
+
+        var brushg = svg.append("g")
+                .attr("class", "brush")
+                .call(brush);
+
+        brushg.selectAll(".resize").append("path")
+                .attr("transform", "translate(0," + height / 2 + ")")
+                .attr("d", arc);
+
+        brushg.selectAll("rect")
+                .attr("height", height);
+
+        brushstart();
+        brushmove();
+
+        function brushstart() {
+            svg.classed("selecting", true);
+        }
+
+        function brushmove() {
+            var s = brush.extent();
+            circle.classed("selected", function (d) {
+                return s[0] <= d && d <= s[1];
+            });
+        }
+
+        function brushend() {
+            //svg.classed("selecting", !d3.event.target.empty());
+            if (!d3.event.target.empty()) {
+                var extent = brush.extent().map(Math.round);
+                drawVisibleCharts(extent);
             } else {
-                destination[property] = source[property];
+                //reset all graphs
+                drawVisibleCharts();
             }
-            ;
         }
-        return destination;
-    };
-
-    function normalizeData(data, series, xAxis) {
-        var sort = crossfilter.quicksort.by(function (d) {
-            return d[xAxis];
-        });
-        var sorted = sort(data, 0, data.length);
-
-        var result = [];
-
-        series.forEach(function (serie, index) {
-            result.push({key: serie.name, values: [], color: serie.color});
-        });
-
-        data.forEach(function (data, dataIndex) {
-            series.forEach(function (serie, serieIndex) {
-                result[serieIndex].values.push({x: data[xAxis], y: data[serie.key]});
-            });
-        });
-
-        return result;
-    }
-    ;
-
-    function testCrossfilterData() {
-        var data = crossfilter(testData());
-
-        try {
-            data.data = data.dimension(function (d) {
-                return d.y;
-            });
-        } catch (e) {
-            console.log(e.stack);
-        }
-
-        return data;
-    }
-
-    function testData() {
-
-        var data1 = [];
-        var data2 = [];
-        var data3 = [];
-
-        stream_layers(3, 128, .1).map(function (layer, index) {
-            layer.forEach(function (item, i) {
-                var object = { x: item.x };
-                object['stream' + (index + 1)] = item.y;
-                eval('data' + (index + 1)).push(object);
-            });
-        });
-
-        var data = extend(data1, data2);
-        var result = extend(data, data3);
-
-        return result;
     }
 
 </script>
@@ -346,8 +432,8 @@
                 </div>
             </div>
 
-            <div id="chart">
-                <svg style="height: 500px;"></svg>
+            <div id="contextBrush">
+                <svg></svg>
             </div>
 
             <div id="DashboardChartArea"></div>

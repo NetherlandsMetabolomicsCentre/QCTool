@@ -1,7 +1,7 @@
 //var url = "https://dl.dropboxusercontent.com/s/afaxphho9v2rrhf/Dashboard.json";
 var url = 'data/metabolomics.json';
 var shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'square'], random = d3.random.normal();
-var Dashboard;
+var Dashboard, elm;
 var jsonObj;
 var qcFitRatioChart, isAreaChart;
 
@@ -56,14 +56,16 @@ function tooltipContent(key, x, y, e, graph) {
 function getMinMax(data) {
     var minY, maxY, minX, maxX;
     data.forEach(function (d) {
-        minY = maxY = d.values[0].y;
-        minX = maxX = d.values[0].x;
-        d.values.forEach(function (s) {
-            minX = Math.min(minX, s.x);
-            maxX = Math.max(maxX, s.x);
-            minY = Math.min(minY, s.y);
-            maxY = Math.max(maxY, s.y);
-        });
+        if (d.values.length) {
+            minY = maxY = d.values[0].y;
+            minX = maxX = d.values[0].x;
+            d.values.forEach(function (s) {
+                minX = Math.min(minX, s.x);
+                maxX = Math.max(maxX, s.x);
+                minY = Math.min(minY, s.y);
+                maxY = Math.max(maxY, s.y);
+            });
+        }
     });
     return { minX: minX, minY: minY, maxX: maxX, maxY: maxY}
 }
@@ -136,12 +138,12 @@ function filterMetaboliteData(dashboard, metIdx, sampleType, response, groupBy) 
                         var b = parseInt(sampleTypeObj.batch[j]);
                         if ((b - 1 ) != i) continue;
                         var yVal = responseVals[j];
-                        // remove NaN values
-                        yVal = $.isNumeric(yVal) ? yVal : null;
-                        if (!yVal) {
-                            console.warn("NaN value at compound:" + sampleTypeObj.samplabs[j] + ", index:" + j, "Batch:" + b);
-                            continue;
-                        }
+                        /*// remove NaN values
+                         yVal = $.isNumeric(yVal) ? yVal : null;
+                         if (!yVal) {
+                         console.warn("NaN value at compound:" + sampleTypeObj.samplabs[j] + ", index:" + j, "Batch:" + b);
+                         continue;
+                         }*/
                         data[i].values.push({
                                 x: sampleTypeObj.OrderAll[j],
                                 y: yVal,
@@ -177,10 +179,10 @@ function filterMetaboliteData(dashboard, metIdx, sampleType, response, groupBy) 
             $.each(responseVals, function (idx, yVal) {
                 // remove NaN values
                 yVal = $.isNumeric(yVal) ? yVal : null;
-                if (!yVal) {
-                    console.warn("NaN value at compound:" + sampleTypeObj.samplabs[idx] + ", index:" + idx, "Batch:" + sampleTypeObj.batch[idx]);
-                    return
-                }
+                /*if (!yVal) {
+                 console.warn("NaN value at compound:" + sampleTypeObj.samplabs[idx] + ", index:" + idx, "Batch:" + sampleTypeObj.batch[idx]);
+                 return
+                 }*/
                 data[0].values.push({
                     x: sampleTypeObj.OrderAll[idx],
                     y: yVal,
@@ -283,13 +285,25 @@ function drawGraph(data, setting) {
             chart.dispatch.on('stateChange', function (e) {
                 console.log('New State:', JSON.stringify(e));
             });
+
+            chart.scatter.dispatch.on('elementMouseout', function (_) {
+                setTimeout(function () {
+                    if (elm && elm.seriesIndex == _.seriesIndex && elm.pointIndex == _.pointIndex) {
+                        //chart.scatter.highlightPoint(_.seriesIndex, _.pointIndex, true);
+                        $.each(Object.keys(chartsSettingArr), function (idx, ch) {
+                            var chartSetting = eval('chartsSettingArr.' + ch);
+                            if (chartSetting.visible) {
+                                chartSetting.chartObject.scatter.clearHighlights();
+                                chartSetting.chartObject.scatter.highlightPoint(_.seriesIndex, _.pointIndex, true);
+                            }
+                        });
+                    }
+                }, 100);
+
+            });
             chart.scatter.dispatch.on('elementClick', function (_) {
-                var g = d3.select(d3.event.target);
-                //g.select('.nv-point-paths').style('pointer-events', 'all');
-                console.log(d3.event.target, d3.select(d3.event.target));
-                //point = d3.select(d3.event.target);
-                d3.select(d3.event.target).classed("hover", true);
-                //console.log('Clicked Element:', JSON.stringify(_));
+                elm = _;
+                chart.scatter.clearHighlights();
             });
             setting.chartObject = chart;
             return chart;
@@ -298,7 +312,7 @@ function drawGraph(data, setting) {
     }
 }
 
-function drawVisibleCharts() {
+function drawVisibleCharts(extent) {
     $.each(Object.keys(chartsSettingArr), function (idx, ch) {
         var chartSetting = eval('chartsSettingArr.' + ch);
         var selectedMetabolite = $('#compound').val();
@@ -307,6 +321,18 @@ function drawVisibleCharts() {
             var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', chartSetting.key);
             qcSampleData = $.extend(qcSampleData[0], {color: 'black', slope: 1});
             btData = btData.concat(qcSampleData);
+            /*
+             *  pre-filter the final data before actual drawing
+             *   filter orderAll only between brush extent i.e. [2, 30]
+             */
+            if (extent) {
+                btData.map(function (d) {
+                    d.values = d.values.filter(function (d) {
+                        return extent[0] <= d.x && d.x <= extent[1];
+                    });
+                    return d;
+                });
+            }
             drawGraph(btData, chartSetting);
         } else {
             // remove it from dom element
