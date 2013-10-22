@@ -1,3 +1,6 @@
 [submodule "web-app/js/nvd3"]
 	path = web-app/js/nvd3
 	url = git://github.com/novus/nvd3.git
+[submodule "web-app/js/slickGrid"]
+	path = web-app/js/slickGrid
+	url = git://github.com/mleibman/SlickGrid.git
