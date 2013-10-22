@@ -6,9 +6,22 @@
     <meta name="layout" content="qctool"/>
     <meta http-equiv="X-UA-Compatible" content="IE=10"/>
     <r:require modules="jquery"/>
+    <r:require modules="jquery-ui"/>
     <g:javascript library="application"/>
     <r:layoutResources/>
     <link rel="stylesheet" media="screen" href="${resource(dir: 'js/nvd3/src', file: 'nv.d3.css')}" type="text/css">
+    <link rel="stylesheet" media="screen" href="${resource(dir: 'js/slickGrid', file: 'slick.grid.css')}"
+          type="text/css">
+    <link rel="stylesheet" media="screen" href="${resource(dir: 'css', file: 'slick-mzQuality-theme.css')}"
+          type="text/css">
+    <link rel="stylesheet" media="screen" href="${resource(dir: 'js/slickGrid/controls', file: 'slick.pager.css')}"
+          type="text/css">
+    <script src="${resource(dir: 'js/slickGrid/lib', file: 'jquery.event.drag-2.2.js')}"></script>
+    <script src="${resource(dir: 'js/slickGrid', file: 'slick.core.js')}"></script>
+    <script src="${resource(dir: 'js/slickGrid/plugins', file: 'slick.rowselectionmodel.js')}"></script>
+    <script src="${resource(dir: 'js/slickGrid', file: 'slick.grid.js')}"></script>
+    <script src="${resource(dir: 'js/slickGrid', file: 'slick.dataview.js')}"></script>
+    <script src="${resource(dir: 'js/slickGrid/controls', file: 'slick.pager.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/lib', file: 'd3.v3.js')}"></script>
     <script src="${resource(dir: 'js/nvd3', file: 'nv.d3.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src', file: 'tooltip.js')}"></script>
@@ -86,6 +99,94 @@
         fill-opacity: .125;
         shape-rendering: crispEdges;
     }
+
+    .tree {
+        min-height: 20px;
+        padding: 19px;
+        margin-bottom: 20px;
+        background-color: #fbfbfb;
+        border: 1px solid #999;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+        -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+        -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05)
+    }
+
+    .tree li {
+        list-style-type: none;
+        margin: 0;
+        padding: 10px 5px 0 5px;
+        position: relative
+    }
+
+    .tree li::before, .tree li::after {
+        content: '';
+        left: -20px;
+        position: absolute;
+        right: auto
+    }
+
+    .tree li::before {
+        border-left: 1px solid #999;
+        bottom: 50px;
+        height: 100%;
+        top: 0;
+        width: 1px
+    }
+
+    .tree li::after {
+        border-top: 1px solid #999;
+        height: 20px;
+        top: 25px;
+        width: 25px
+    }
+
+    .tree li span {
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+        border: 1px solid #999;
+        border-radius: 5px;
+        display: inline-block;
+        padding: 3px 8px;
+        text-decoration: none
+    }
+
+    .tree li.parent_li>span {
+        cursor: pointer
+    }
+
+    .tree>ul>li::before, .tree>ul>li::after {
+        border: 0
+    }
+
+    .tree li:last-child::before {
+        height: 30px
+    }
+
+    .tree li.parent_li>span:hover, .tree li.parent_li>span:hover+ul li span {
+        background: #eee;
+        border: 1px solid #94a0b4;
+        color: #000
+    }
+
+    .progress {
+        position: relative;
+    }
+
+    .bar {
+        z-index: 1;
+        position: absolute;
+    }
+
+    .progress span {
+        position: absolute;
+        top: 0;
+        z-index: 2;
+        text-align: center;
+        width: 100%;
+    }
     </style>
 </head>
 
@@ -112,19 +213,163 @@
         Dashboard = jsonObj;
 
         var comboList = $("#compound");
-        $.each(Dashboard.metabolites, function (i, comp) {
+        $.each(filterAnalyte(Dashboard, 'Metabolite'), function (i, comp) {
             comboList.append($("<option></option>")
                     .attr("value", i)
                     .text(comp.Name));
         });
-
+        initInfoTable(Dashboard.Table);
         drawVisibleCharts();
-        drawISAreaMultiChart();
-        drawQcFitMultiChart();
+        //drawISAreaMultiChart();
+        //drawQcFitMultiChart();
         //drawFocusChart();
         drawContextBrush();
         $('#pleaseWaitDialog').modal('hide');
     }
+
+    function percentCompleteBar(row, cell, value, columnDef, dataContext) {
+        if (value == null || value === "") {
+            return "";
+        }
+        var bar, newVal = Math.round(value * 100);
+        if (newVal < 30) {
+            bar = "bar-danger";
+        } else if (newVal < 70) {
+            bar = "bar-warning";
+        } else {
+            bar = "bar-success";
+        }
+        return "<div class='progress'>" +
+                "<div class='" + bar + " bar' style='width:" + newVal + "%;'></div>" +
+                "<span>" + value + "</span>" +
+                "</div>"
+    }
+
+    function initInfoTable(tableData) {
+        var dataView;
+        var grid;
+        var data = [];
+        var columns = [
+            {id: "sel", name: "#", field: "num", behavior: "select", cssClass: "cell-selection", width: 40, resizable: false, sortable: true, selectable: false },
+            {id: "analyte", name: "Analyte", field: "analyte", sortable: true, width: 120, minWidth: 120, cssClass: "cell-title"},
+            {id: "RSDRatioQC", name: "RSDRatioQC", field: "RSDRatioQC", width: 100, sortable: true, formatter: percentCompleteBar },
+            {id: "RSDRatioreps", name: "RSDRatioreps", field: "RSDRatioreps", width: 100, sortable: true, formatter: percentCompleteBar}
+        ];
+
+        var options = {
+            editable: true,
+            enableAddRow: false,
+            enableCellNavigation: true,
+            asyncEditorLoading: true,
+            forceFitColumns: false,
+            topPanelHeight: 25
+        };
+
+        var sortcol = "title";
+        var sortdir = 1;
+        var percentCompleteThreshold = 0;
+        var searchString = "";
+
+        function myFilter(item, args) {
+            return item["RSDRatioQC"] >= args;
+        }
+
+        function DataItem(i) {
+            this.num = i;
+            this.id = "id_" + i;
+            this.RSDRatioQC = tableData.RSDRatioQC[i];
+            this.RSDRatioreps = tableData.RSDRatioreps[i];
+            this.analyte = tableData.Analyte[i];
+
+        }
+
+        // prepare the data
+        $.each(tableData.Analyte, function (i, key) {
+            data[i] = new DataItem(i);
+        });
+
+
+        dataView = new Slick.Data.DataView({ inlineFilters: true });
+        grid = new Slick.Grid("#infoTable", dataView, columns, options);
+        grid.setSelectionModel(new Slick.RowSelectionModel());
+        var pager = new Slick.Controls.Pager(dataView, grid, $("#pager"));
+
+        // wire up model events to drive the grid
+        dataView.onRowCountChanged.subscribe(function (e, args) {
+            grid.updateRowCount();
+            grid.render();
+        });
+
+        dataView.onRowsChanged.subscribe(function (e, args) {
+            grid.invalidateRows(args.rows);
+            grid.render();
+        });
+
+        function filterAndUpdate() {
+            var isNarrowing = percentCompleteThreshold > prevPercentCompleteThreshold;
+            var isExpanding = percentCompleteThreshold < prevPercentCompleteThreshold;
+            var renderedRange = grid.getRenderedRange();
+
+            dataView.setFilterArgs(percentCompleteThreshold);
+            dataView.setRefreshHints({
+                ignoreDiffsBefore: renderedRange.top,
+                ignoreDiffsAfter: renderedRange.bottom + 1,
+                isFilterNarrowing: isNarrowing,
+                isFilterExpanding: isExpanding
+            });
+            dataView.refresh();
+
+            prevPercentCompleteThreshold = percentCompleteThreshold;
+        }
+
+
+        // initialize the model after all the events have been hooked up
+        dataView.beginUpdate();
+        dataView.setItems(data);
+        dataView.setFilter(myFilter);
+        dataView.setFilterArgs(0);
+        dataView.endUpdate();
+    }
+
+    function updateSettingsDlg() {
+        var ignoreList = ['Info', 'Table', 'Dictionary'];
+        var contentDiv = $('#settingform div');
+        contentDiv.empty();
+        var treeRootHtml = $('<div/>', {
+            "class": "tree",
+            title: 'Dashboard Settings',
+            id: "DashboardGraphSettings"
+        }).appendTo(contentDiv);
+        var trunk = $("<ul/>");
+        $.each(Object.keys(Dashboard), function (i, key) {
+            if ((ignoreList.indexOf(key) != -1)) return;
+            var firstParent = $("<li><span><i class='icon-minus-sign icon-calendar'></i> " + key + "</span></li>");
+            var secondParent = $("<ul/>");
+            var obj = eval('Dashboard.' + key) instanceof Array ? eval('Dashboard.' + key)[0] : eval('Dashboard.' + key);
+            $.each(Object.keys(obj), function (j, subkey) {
+                secondParent.append("<li class='hide'><span class='badge badge-success'> " + subkey + " <input type='checkbox' id='Dashboard.'" + key + "." + subkey + "'></span></li>");
+
+            });
+            firstParent.append(secondParent);
+            trunk.append(firstParent);
+        });
+        treeRootHtml.append(trunk);
+        $(function () {
+            $('.tree li:has(ul)').addClass('parent_li').find(' > span').attr('title', 'Collapse this branch');
+            $('.tree li.parent_li > span').on('click', function (e) {
+                var children = $(this).parent('li.parent_li').find(' > ul > li');
+                if (children.is(":visible")) {
+                    children.hide('fast');
+                    $(this).attr('title', 'Expand this branch').find(' > i').addClass('icon-plus-sign').removeClass('icon-minus-sign');
+                } else {
+                    children.show('fast');
+                    $(this).attr('title', 'Collapse this branch').find(' > i').addClass('icon-minus-sign').removeClass('icon-plus-sign');
+                }
+                e.stopPropagation();
+            });
+        });
+    }
+
     $(function () {
         $('#pleaseWaitDialog').modal('show');
         $("#compound").change(function () {
@@ -214,123 +459,6 @@
             });
         }
     }
-
-    /*
-     *
-     * Let's create the context brush that will let us zoom and pan the chart
-     *
-     */
-
-    function drawContextBrush() {
-
-        var selectedMetabolite = $('#compound').val();
-        var data = Dashboard.metabolites[selectedMetabolite].All.OrderAll;
-        var dMin = d3.min(data);
-        var dMax = d3.max(data);
-        var margin = {top: 0, right: 60, bottom: 20, left: 60},
-                width = null,
-                height = 50 - margin.top - margin.bottom;
-
-        $('#contextBrush').prepend("<div class='row'>" +
-                "<div class='span00 text-center'>" +
-                "<p><span class='label label-info'>Select sample order window to zoom-in</span></p>" +
-                "</div></div>");
-
-
-        var svg = d3.select("#contextBrush svg")
-
-        var availableWidth = (width || parseInt(svg.style('width')) || 960) - margin.left - margin.right;
-
-        svg.attr("width", availableWidth + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom + 10)
-                .append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-        var x = d3.scale.linear()
-                .domain([dMin, dMax])
-                .range([0, availableWidth]);
-
-        var y = d3.random.normal(height / 2, height / 8);
-
-        var brush = d3.svg.brush()
-                .x(x)
-            //.extent([20, 100])
-                .on("brushstart", brushstart)
-                .on("brush", brushmove)
-                .on("brushend", brushend);
-
-        var arc = d3.svg.arc()
-                .outerRadius(height / 2)
-                .startAngle(0)
-                .endAngle(function (d, i) {
-                    return i ? -Math.PI : Math.PI;
-                });
-
-        var g = svg.append("g")
-                .attr("class", "x axis")
-                .attr("transform", "translate(0," + height + ")")
-                .call(d3.svg.axis()
-                        .scale(x)
-                        .orient("bottom")
-                        .tickFormat(d3.format('d'))
-                        //.tickSize(10)
-                        //.tickPadding(9)
-                );
-
-        var axisLabel = g.append('text')
-                .attr("class", "nv-axislabel")
-                .text("Order")
-                .attr('text-anchor', 'middle')
-                .attr('y', height)
-                .attr('x', availableWidth / 2);
-
-        var circle = svg.append("g").selectAll("circle")
-                .data(data)
-                .enter().append("circle")
-                .attr("r", 3.5)
-                .attr("transform", function (d) {
-                    //console.log(d);
-                    return "translate(" + x(d) + "," + y() + ")";
-                });
-
-
-        var brushg = svg.append("g")
-                .attr("class", "brush")
-                .call(brush);
-
-        brushg.selectAll(".resize").append("path")
-                .attr("transform", "translate(0," + height / 2 + ")")
-                .attr("d", arc);
-
-        brushg.selectAll("rect")
-                .attr("height", height);
-
-        brushstart();
-        brushmove();
-
-        function brushstart() {
-            svg.classed("selecting", true);
-        }
-
-        function brushmove() {
-            var s = brush.extent();
-            circle.classed("selected", function (d) {
-                return s[0] <= d && d <= s[1];
-            });
-        }
-
-        function brushend() {
-            //svg.classed("selecting", !d3.event.target.empty());
-            if (!d3.event.target.empty()) {
-                var extent = brush.extent().map(Math.round);
-                drawVisibleCharts(extent);
-            } else {
-                //reset all graphs
-                drawVisibleCharts();
-            }
-        }
-    }
-
 </script>
 
 <div class="tabbable tabs-left">
@@ -359,6 +487,10 @@
             </table>
             <a href="#advancedSettings" role="button" data-toggle="modal"
                class="btn btn-warning pull-right">Settings</a>
+
+            <div id="infoTable" class="table table-hover" style="width:400px; height:200px;"></div>
+
+            <div id="pager" style="width:400px;height:20px;"></div>
 
             <!-- Advanced Setting Modal -->
             <div id="advancedSettings" class="modal hide fade" tabindex="-1" role="dialog"
