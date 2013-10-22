@@ -476,7 +476,7 @@ class ProjectController {
             render JSON.parse(jsonStr) as JSON
         }
         */
-        def jsonStr = new File("/Users/ishtiaq/Dropbox/QCtoolIshtiaque/mzQuality" + File.separator + "Dashboard.json").text
+        def jsonStr = new File("/Users/ishtiaq/Dropbox/QCtoolIshtiaque/2oct" + File.separator + "Dashboard.json").text
         render JSON.parse(jsonStr) as JSON
     }
 

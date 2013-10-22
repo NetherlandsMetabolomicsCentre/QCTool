@@ -3,13 +3,13 @@ var url = 'data/metabolomics.json';
 var shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'square'], random = d3.random.normal();
 var Dashboard, elm;
 var jsonObj;
-var qcFitRatioChart, isAreaChart;
+var qcFitRatioChart, isAreaChart, focusChart;
 
 var chartsSettingArr = {   // charts array and its default values
     ratioChart: {
         key: 'Ratio',
         sampleType: 'Sample',
-        groupBy: 'batch',
+        groupBy: 'Batch',
         xAxisLabel: 'Order',
         yAxisLabel: 'Ratio (uncorrected)',
         visible: true,
@@ -18,7 +18,7 @@ var chartsSettingArr = {   // charts array and its default values
     ratioQChart: {
         key: 'RatioQ',
         sampleType: 'Sample',
-        groupBy: 'batch',
+        groupBy: 'Batch',
         xAxisLabel: 'Order',
         yAxisLabel: 'Ratio (QC corrected)',
         visible: true,
@@ -27,7 +27,7 @@ var chartsSettingArr = {   // charts array and its default values
     areaChart: {
         key: 'Area',
         sampleType: 'Sample',
-        groupBy: 'batch',
+        groupBy: 'Batch',
         xAxisLabel: 'Order',
         yAxisLabel: 'Area',
         visible: true,
@@ -36,12 +36,22 @@ var chartsSettingArr = {   // charts array and its default values
     rtChart: {
         key: 'RT',
         sampleType: 'Sample',
-        groupBy: 'batch',
+        groupBy: 'Batch',
         xAxisLabel: 'Order',
         yAxisLabel: 'Retention Time',
         visible: true,
         chartObject: nv.models.scatterChart()
     }
+};
+
+Array.prototype.clean = function (deleteValue) {
+    for (var i = 0; i < this.length; i++) {
+        if (this[i] == deleteValue) {
+            this.splice(i, 1);
+            i--;
+        }
+    }
+    return this;
 };
 
 function tooltipContent(key, x, y, e, graph) {
@@ -52,7 +62,11 @@ function tooltipContent(key, x, y, e, graph) {
         '<p>' + y + ' on ' + x + '</p>';
 
 }
-
+/*
+ * TODo
+ * implement efficient way to find min/max
+ * var max_of_array = Math.max.apply(Math, array);
+ */
 function getMinMax(data) {
     var minY, maxY, minX, maxX;
     data.forEach(function (d) {
@@ -72,42 +86,13 @@ function getMinMax(data) {
 
 function filterMetaboliteData(dashboard, metIdx, sampleType, response, groupBy) { //# groups,# points per group
     var data = [];
-    var metabolite = dashboard.metabolites[metIdx];
-    /*var sampleTypeObj;
-     switch (sampleType) {
-     case 'Sample' :
-     sampleTypeObj = metabolite.Sample;
-     break;
-     case 'QCsample':
-     sampleTypeObj = metabolite.QCsample;
-     break;
-     case 'Cal' :
-     sampleTypeObj = metabolite.Cal;
-     break;
-     }*/
-
+    var metabolite = dashboard.Metabolite[metIdx];
     var sampleTypeObj = eval('metabolite.' + sampleType);
     if (!sampleTypeObj) {
         console.error("SampleType:" + sampleType + " does not exist");
         console.error("Object does not have property name:", sampleType);
         return
     }
-
-    /*var responseVals = [];
-     switch (response) {
-     case 'Area' :
-     responseVals = sampleTypeObj.Area;
-     break;
-     case 'RT':
-     responseVals = sampleTypeObj.RT;
-     break;
-     case 'Ratio' :
-     responseVals = sampleTypeObj.Ratio;
-     break;
-     case 'RatioQ' :
-     responseVals = sampleTypeObj.RatioQ;
-     break;
-     }*/
 
     var responseVals = eval('sampleTypeObj.' + response);
     if (!responseVals) {
@@ -194,6 +179,109 @@ function filterMetaboliteData(dashboard, metIdx, sampleType, response, groupBy) 
     }
     return data;
 }
+
+function filterAnalyte(dashboard, analyteType) {
+    var analyteTypeObj = eval('dashboard.' + analyteType);
+
+    if (!analyteTypeObj) {
+        console.error("analyteType:" + analyteType + " does not exist");
+        console.error("Object does not have property name:", analyteType);
+        return
+    } else if (!analyteTypeObj instanceof Array || analyteTypeObj.length == 0) {
+        console.error("Not an analyte or its an empty Array");
+        return
+    }
+    return analyteTypeObj
+}
+
+function filterAnalyteResponse(analyteArr, metIdx, response) {
+    var analyte = analyteArr[metIdx];
+    if (!analyte) {
+        console.error("No analyte exist on this:", analyteArr, metIdx);
+        return
+    }
+    var responseVals = eval('analyte.' + response);
+    if (!responseVals) {
+        console.error("No such response type exist:", response);
+        return
+    }
+    return responseVals
+}
+
+function filterSampleType(sampleTypesArr, responseVals, sampleType) {
+    if (!sampleTypesArr || !responseVals) {
+        console.error("its is empty");
+        return
+    }
+    var sampleTypeGroups = makeGroup(responseVals, sampleTypesArr);
+    if (sampleType) {
+        return sampleTypeGroups.filter(function (itm, i) {
+            return itm.key == sampleType;
+        });
+    } else
+        return sampleTypeGroups;
+}
+
+function makeGroup(responseVals, groupByObj) {
+    if (responseVals.length != groupByObj.length) {
+        console.error("Data responseVals and groupByObj does not correspond to same length!", responseVals.length, groupByObj.length);
+        return
+    }
+    if (!groupByObj) {
+        console.error("No such group exist in dashboard.Info:", groupByObj);
+        console.error("Sending back data without groping");
+        return responseVals;
+    }
+
+    var groups = [];
+    var nGroups = groupByObj.filter(function (itm, i, groupByObj) {
+        return i == groupByObj.indexOf(itm);
+    });
+
+    $.each(nGroups, function (i, currentGroup) {
+        var pos = []
+        var g = responseVals.filter(function (itm, index) {
+            if (currentGroup == groupByObj[index]) {
+                pos.push(index)
+                return true
+            } else {
+                return false
+            }
+        });
+        groups.push({
+            key: currentGroup,
+            values: g,
+            originalPos: pos
+        });
+
+        /*
+         groups.push({
+         group: currentGroup,
+         values: new Array(responseVals.length)
+         });
+
+         for (var j = 0; j < responseVals.length; j++) {
+         if (currentGroup == groupByObj[j])
+         groups[i].values[j] = responseVals[j];
+         }
+         */
+    });
+
+    return groups;
+}
+
+function indexDataStream(vectorX, vectorY) {
+    /*
+     if (vectorX.length != vectorY.length) {
+     console.error("Data X and Y does not correspond to same length!", vectorX.length, vectorY.length);
+     return
+     }
+     */
+    return vectorY.map(function (yd, i) {
+        return {x: vectorX[i], y: yd }
+    });
+}
+
 function variance(x) {
     var n = x.length;
     if (n < 1) return NaN;
@@ -317,10 +405,62 @@ function drawVisibleCharts(extent) {
         var chartSetting = eval('chartsSettingArr.' + ch);
         var selectedMetabolite = $('#compound').val();
         if (chartSetting.visible) {
-            var btData = filterMetaboliteData(Dashboard, selectedMetabolite, chartSetting.sampleType, chartSetting.key, chartSetting.groupBy);
-            var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', chartSetting.key);
-            qcSampleData = $.extend(qcSampleData[0], {color: 'black', slope: 1});
-            btData = btData.concat(qcSampleData);
+            /*
+             var btData = filterMetaboliteData(Dashboard, selectedMetabolite, chartSetting.sampleType, chartSetting.key, chartSetting.groupBy);
+             var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', chartSetting.key);
+             qcSampleData = $.extend(qcSampleData[0], {color: 'black', slope: 1});
+             btData = btData.concat(qcSampleData);
+             */
+            var allRespVal = filterAnalyteResponse(filterAnalyte(Dashboard, 'Metabolite'), selectedMetabolite, chartSetting.key);
+            var groupByObj = Dashboard.Info.Type;
+            var xAxisData = Dashboard.Info.Order;
+            var sampleTypeGroups = makeGroup(allRespVal, groupByObj); // group by sample type i.g. sample, QCsample, blank etc.
+            var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {  // only copy the required sampleType in this case Sample
+                return itm.key == chartSetting.sampleType;
+            })[0];
+
+            // sub groups (i.e. batch, duplo etc.) within top level sample type group
+            var groupBy = makeGroup(eval('Dashboard.Info.' + chartSetting.groupBy), groupByObj).filter(function (itm, i) {
+                return itm.key == chartSetting.sampleType;
+            })[0];
+
+            var sampleType_subGroups = makeGroup(sampleType_sampleData.values, groupBy.values);
+            var btData = sampleType_subGroups.map(function (g) {
+                return {
+                    key: chartSetting.groupBy + ' ' + g.key,
+                    values: g.values.map(function (val, i) {
+                        return {x: xAxisData[allRespVal.indexOf(val)], y: val }
+                    })
+                }
+            })
+
+            var sampleType_qcSampleData = sampleTypeGroups.filter(function (itm, i) {
+                return itm.key == 'QCsample';
+            })[0];
+
+            sampleType_qcSampleData.values = sampleType_qcSampleData.values.map(function (val, i) {
+                return {x: xAxisData[allRespVal.indexOf(val)], y: val }
+            });
+
+            sampleType_qcSampleData = $.extend(sampleType_qcSampleData, {color: 'black', slope: 1});
+
+            btData = btData.concat(sampleType_qcSampleData);
+
+            /*
+             var data = [];
+             var qcData = indexDataStream(Dashboard.Info.Order, qcSampleData[0].values);
+             var mean = d3.mean(qcSampleData[0].values);
+             var v = variance(qcSampleData[0].values);
+
+             data.push({
+             key: 'QCsample',
+             color: 'black',
+             mean: mean,
+             variance: v,
+             values: qcData
+             });
+             */
+
             /*
              *  pre-filter the final data before actual drawing
              *   filter orderAll only between brush extent i.e. [2, 30]
@@ -483,5 +623,122 @@ function drawQcFitMultiChart() {
             qcFitRatioChart = chart;
             return chart;
         });
+    }
+}
+
+
+/*
+ *
+ * Let's create the context brush that will let us zoom and pan the chart
+ *
+ */
+
+function drawContextBrush() {
+
+    var selectedMetabolite = $('#compound').val();
+    var data = Dashboard.Info.Order;
+    var dMin = d3.min(data);
+    var dMax = d3.max(data);
+    var margin = {top: 0, right: 60, bottom: 20, left: 60},
+        width = null,
+        height = 50 - margin.top - margin.bottom;
+
+    $('#contextBrush').prepend("<div class='row'>" +
+        "<div class='span00 text-center'>" +
+        "<p><span class='label label-info'>Select sample order window to zoom-in</span></p>" +
+        "</div></div>");
+
+
+    var svg = d3.select("#contextBrush svg")
+
+    var availableWidth = (width || parseInt(svg.style('width')) || 960) - margin.left - margin.right;
+
+    svg.attr("width", availableWidth + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom + 10)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var x = d3.scale.linear()
+        .domain([dMin, dMax])
+        .range([0, availableWidth]);
+
+    var y = d3.random.normal(height / 2, height / 8);
+
+    var brush = d3.svg.brush()
+        .x(x)
+        //.extent([20, 100])
+        .on("brushstart", brushstart)
+        .on("brush", brushmove)
+        .on("brushend", brushend);
+
+    var arc = d3.svg.arc()
+        .outerRadius(height / 2)
+        .startAngle(0)
+        .endAngle(function (d, i) {
+            return i ? -Math.PI : Math.PI;
+        });
+
+    var g = svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .tickFormat(d3.format('d'))
+            //.tickSize(10)
+            //.tickPadding(9)
+        );
+
+    var axisLabel = g.append('text')
+        .attr("class", "nv-axislabel")
+        .text("Order")
+        .attr('text-anchor', 'middle')
+        .attr('y', height)
+        .attr('x', availableWidth / 2);
+
+    var circle = svg.append("g").selectAll("circle")
+        .data(data)
+        .enter().append("circle")
+        .attr("r", 3.5)
+        .attr("transform", function (d) {
+            //console.log(d);
+            return "translate(" + x(d) + "," + y() + ")";
+        });
+
+
+    var brushg = svg.append("g")
+        .attr("class", "brush")
+        .call(brush);
+
+    brushg.selectAll(".resize").append("path")
+        .attr("transform", "translate(0," + height / 2 + ")")
+        .attr("d", arc);
+
+    brushg.selectAll("rect")
+        .attr("height", height);
+
+    brushstart();
+    brushmove();
+
+    function brushstart() {
+        svg.classed("selecting", true);
+    }
+
+    function brushmove() {
+        var s = brush.extent();
+        circle.classed("selected", function (d) {
+            return s[0] <= d && d <= s[1];
+        });
+    }
+
+    function brushend() {
+        //svg.classed("selecting", !d3.event.target.empty());
+        if (!d3.event.target.empty()) {
+            var extent = brush.extent().map(Math.round);
+            drawVisibleCharts(extent);
+        } else {
+            //reset all graphs
+            drawVisibleCharts();
+        }
     }
 }
