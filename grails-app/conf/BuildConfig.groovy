@@ -44,7 +44,7 @@ grails.project.dependency.resolution = {
         runtime ":hibernate:$grailsVersion"
         runtime ":jquery:1.10.2"
         runtime ":jquery-ui:1.8.24"
-        runtime ":resources:1.2.RC2"
+        runtime ":resources:1.2.1"
         runtime ":console:1.2"
         runtime ":excel-import:1.0.0"
         runtime ":export:1.5"
