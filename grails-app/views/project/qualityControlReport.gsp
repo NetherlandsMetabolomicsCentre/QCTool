@@ -38,6 +38,10 @@
     <script src="${resource(dir: 'js/nvd3/lib', file: 'crossfilter.min.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'lineWithFocusChart.js')}"></script>
     <script src="${resource(dir: 'js', file: 'scatterWithFocusChart.js')}"></script>
+    <script src="${resource(dir: 'js/nvd3/src/models', file: 'discreteBar.js')}"></script>
+    <script src="${resource(dir: 'js/nvd3/src/models', file: 'discreteBarChart.js')}"></script>
+    <script src="${resource(dir: 'js/nvd3/src/models', file: 'multiBar.js')}"></script>
+    <script src="${resource(dir: 'js/nvd3/src/models', file: 'multiBarChart.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/examples', file: 'stream_layers.js')}"></script>
 
     <style>
@@ -218,12 +222,12 @@
                     .attr("value", i)
                     .text(comp.Name));
         });
-        initInfoTable(Dashboard.Table);
+        //initInfoTable(Dashboard.Table);
+        drawContextBrush();
         drawVisibleCharts();
         //drawISAreaMultiChart();
         //drawQcFitMultiChart();
         //drawFocusChart();
-        drawContextBrush();
         $('#pleaseWaitDialog').modal('hide');
     }
 
@@ -375,8 +379,8 @@
         $("#compound").change(function () {
             var selectedValues = $('#compound').val();
             drawVisibleCharts();
-            drawISAreaMultiChart();
-            drawQcFitMultiChart();
+            //drawISAreaMultiChart();
+            //drawQcFitMultiChart();
             //drawFocusChart();
         });
     });
@@ -569,7 +573,10 @@
             </div>
 
             <div id="DashboardChartArea"></div>
-
+            <div style="height: 500px;" id="chart2">
+                Normal chart, no transitionDuration or delay, no bar color set.
+                <svg></svg>
+            </div>
             <div id="ISAreaMultiChart">
                 <svg></svg>
             </div>
