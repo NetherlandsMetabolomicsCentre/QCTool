@@ -4,7 +4,7 @@ nv.models.multiChart = function () {
     // Public Variables with Default Settings
     //------------------------------------------------------------
 
-    var margin = {top: 30, right: 20, bottom: 50, left: 60},
+    var margin = {top: 30, right: 20, bottom: 50, left: 75},
         color = nv.utils.defaultColor(),
         width = null,
         height = null,
@@ -14,6 +14,8 @@ nv.models.multiChart = function () {
             return '<h3>' + key + '</h3>' +
                 '<p>' + y + ' at ' + x + '</p>'
         },
+        state = {},
+        defaultState = null,
         x,
         y,
         yDomain1,
@@ -44,8 +46,8 @@ nv.models.multiChart = function () {
         yAxis1 = nv.models.axis().scale(yScale1).orient('left'),
         yAxis2 = nv.models.axis().scale(yScale2).orient('right'),
 
-        legend = nv.models.legend().height(30),
-        dispatch = d3.dispatch('tooltipShow', 'tooltipHide');
+        legend = nv.models.legend(),
+        dispatch = d3.dispatch('tooltipShow', 'tooltipHide', 'stateChange', 'changeState');
 
     var showTooltip = function (e, offsetElement) {
         var left = e.pos[0] + ( offsetElement.offsetLeft || 0 ),
@@ -62,16 +64,29 @@ nv.models.multiChart = function () {
         selection.each(function (data) {
             var container = d3.select(this),
                 that = this;
+            var availableWidth = (width || parseInt(container.style('width')) || 960)
+                    - margin.left - margin.right,
+                availableHeight = (height || parseInt(container.style('height')) || 400)
+                    - margin.top - margin.bottom;
 
             chart.update = function () {
                 container.transition().call(chart);
             };
             chart.container = this;
 
-            var availableWidth = (width || parseInt(container.style('width')) || 960)
-                    - margin.left - margin.right,
-                availableHeight = (height || parseInt(container.style('height')) || 400)
-                    - margin.top - margin.bottom;
+            //set state.disabled
+            state.disabled = data.map(function(d) { return !!d.disabled });
+
+            if (!defaultState) {
+                var key;
+                defaultState = {};
+                for (key in state) {
+                    if (state[key] instanceof Array)
+                        defaultState[key] = state[key].slice(0);
+                    else
+                        defaultState[key] = state[key];
+                }
+            }
 
             var dataLines1 = data.filter(function (d) {
                 return !d.disabled && d.type == 'line' && d.yAxis == 1
@@ -350,12 +365,28 @@ nv.models.multiChart = function () {
                 .style('opacity', series2.length ? 1 : 0)
                 .attr('transform', 'translate(' + x.range()[1] + ',0)');
 
-            legend.dispatch.on('stateChange', function (newState) {
+            legend.dispatch.on('stateChange', function(newState) {
+                state.disabled = newState.disabled;
+                dispatch.stateChange(state);
                 chart.update();
             });
 
             dispatch.on('tooltipShow', function (e) {
                 if (tooltips) showTooltip(e, that.parentNode);
+            });
+
+            // Update chart from a state object passed to event handler
+            dispatch.on('changeState', function(e) {
+
+                if (typeof e.disabled !== 'undefined') {
+                    data.forEach(function(series,i) {
+                        series.disabled = e.disabled[i];
+                    });
+
+                    state.disabled = e.disabled;
+                }
+
+                chart.update();
             });
 
         });
@@ -479,6 +510,14 @@ nv.models.multiChart = function () {
     chart.xAxis = xAxis;
     chart.yAxis1 = yAxis1;
     chart.yAxis2 = yAxis2;
+
+    d3.rebind(chart, lines1, 'id', 'interactive', 'size', 'xScale', 'yScale', 'zScale', 'xDomain', 'yDomain', 'xRange', 'yRange','sizeDomain', 'forceX', 'forceY', 'forceSize', 'clipVoronoi', 'useVoronoi', 'clipRadius', 'padData','highlightPoint','clearHighlights');
+    d3.rebind(chart, lines2, 'id', 'interactive', 'size', 'xScale', 'yScale', 'zScale', 'xDomain', 'yDomain', 'xRange', 'yRange','sizeDomain', 'forceX', 'forceY', 'forceSize', 'clipVoronoi', 'useVoronoi', 'clipRadius', 'padData','highlightPoint','clearHighlights');
+    d3.rebind(chart, scatter1, 'id', 'interactive', 'pointActive', 'x', 'y', 'shape', 'size', 'xScale', 'yScale', 'zScale', 'xDomain', 'yDomain', 'xRange', 'yRange', 'sizeDomain', 'sizeRange', 'forceX', 'forceY', 'forceSize', 'clipVoronoi', 'clipRadius', 'useVoronoi');
+    d3.rebind(chart, scatter2, 'id', 'interactive', 'pointActive', 'x', 'y', 'shape', 'size', 'xScale', 'yScale', 'zScale', 'xDomain', 'yDomain', 'xRange', 'yRange', 'sizeDomain', 'sizeRange', 'forceX', 'forceY', 'forceSize', 'clipVoronoi', 'clipRadius', 'useVoronoi');
+    d3.rebind(chart, bars1, 'x', 'y', 'xDomain', 'yDomain', 'xRange', 'yRange', 'forceY', 'clipEdge','id', 'stacked', 'stackOffset', 'delay', 'barColor','groupSpacing');
+    d3.rebind(chart, bars2, 'x', 'y', 'xDomain', 'yDomain', 'xRange', 'yRange', 'forceY', 'clipEdge','id', 'stacked', 'stackOffset', 'delay', 'barColor','groupSpacing');
+
     chart.options = nv.utils.optionsFunc.bind(chart);
 
     chart.x = function (_) {
@@ -551,6 +590,18 @@ nv.models.multiChart = function () {
     chart.tooltipContent = function (_) {
         if (!arguments.length) return tooltip;
         tooltip = _;
+        return chart;
+    };
+
+    chart.state = function(_) {
+        if (!arguments.length) return state;
+        state = _;
+        return chart;
+    };
+
+    chart.defaultState = function(_) {
+        if (!arguments.length) return defaultState;
+        defaultState = _;
         return chart;
     };
 

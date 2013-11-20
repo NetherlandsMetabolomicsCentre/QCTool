@@ -224,6 +224,7 @@
         });
         //initInfoTable(Dashboard.Table);
         drawContextBrush();
+        //drawLegend();
         drawVisibleCharts();
         //drawISAreaMultiChart();
         //drawQcFitMultiChart();
@@ -572,11 +573,16 @@
                 <svg></svg>
             </div>
 
+            %{--<div class="navbar affix-top" data-spy="affix" data-offset-top="250">--}%
+                %{--<div class="navbar-inner">--}%
+                    %{--<div class="container">--}%
+                        %{--<div><svg id="mainLegend"></svg></div>--}%
+                    %{--</div>--}%
+                %{--</div>--}%
+            %{--</div>--}%
+
             <div id="DashboardChartArea"></div>
-            <div style="height: 500px;" id="chart2">
-                Normal chart, no transitionDuration or delay, no bar color set.
-                <svg></svg>
-            </div>
+
             <div id="ISAreaMultiChart">
                 <svg></svg>
             </div>
