@@ -222,7 +222,7 @@
                     .text(comp.Name));
         });
         reportSettingsDlg();
-        //initInfoTable(Dashboard.Table);
+        //initInfoTable(Dashboard.Tables);
         drawContextBrush();
         //drawLegend();
         drawVisibleCharts();
@@ -461,8 +461,12 @@
             <a href="#advancedSettings" role="button" data-toggle="modal"
                class="btn btn-warning pull-right">Settings</a>
 
-            <div id="infoTable" class="table table-hover" style="width:400px; height:200px;"></div>
-
+            <div id="htmlMetaboliteTable">
+                <report:metaboliteTable qcData="${qcData}" />
+            </div>
+            <!--
+                <div id="infoTable" class="table table-hover" style="width:400px; height:200px;"></div>
+            -->
             <div id="pager" style="width:400px;height:20px;"></div>
 
             <!-- Advanced Setting Modal -->

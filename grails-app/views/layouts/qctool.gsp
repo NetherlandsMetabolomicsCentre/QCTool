@@ -20,6 +20,10 @@
         /* The html and body elements cannot have any padding or margin. */
     }
 
+    .container {
+        width: 1240px;
+    }
+
         /* Wrapper for page content to push down footer */
     #wrap {
         min-height: 100%;

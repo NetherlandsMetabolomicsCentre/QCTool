@@ -56,7 +56,10 @@ class ProjectController {
         if (!params?.id) {
             redirect(action: "index", params: params)
         }
-        [project: Project.get(params.id)]
+
+        def jsonStr = new File("/tmp/QCTool/12nov" + File.separator + "DashboardPlots.json").text
+
+        [project: Project.get(params.id), qcData: jsonStr]
     }
 
     def addSetting() {
@@ -476,7 +479,8 @@ class ProjectController {
             render JSON.parse(jsonStr) as JSON
         }
         */
-        def jsonStr = new File("/Users/ishtiaq/Dropbox/QCtoolIshtiaque/12nov" + File.separator + "DashboardPlots.json").text
+        def jsonStr = new File("/tmp/QCTool/12nov" + File.separator + "DashboardPlots.json").text
+
         render JSON.parse(jsonStr) as JSON
     }
 
