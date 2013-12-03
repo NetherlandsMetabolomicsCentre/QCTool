@@ -35,13 +35,12 @@
     <script src="${resource(dir: 'js', file: 'qualityControl.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'scatterChart.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'scatterPlusLineChart.js')}"></script>
-    <script src="${resource(dir: 'js/nvd3/lib', file: 'crossfilter.min.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'lineWithFocusChart.js')}"></script>
-    <script src="${resource(dir: 'js', file: 'scatterWithFocusChart.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'discreteBar.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'discreteBarChart.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'multiBar.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/src/models', file: 'multiBarChart.js')}"></script>
+    <script src="${resource(dir: 'js/nvd3/src/models', file: 'multiBarTimeSeries.js')}"></script>
     <script src="${resource(dir: 'js/nvd3/examples', file: 'stream_layers.js')}"></script>
 
     <style>
@@ -222,13 +221,13 @@
                     .attr("value", i)
                     .text(comp.Name));
         });
+        reportSettingsDlg();
         //initInfoTable(Dashboard.Table);
         drawContextBrush();
         //drawLegend();
         drawVisibleCharts();
         //drawISAreaMultiChart();
         //drawQcFitMultiChart();
-        //drawFocusChart();
         $('#pleaseWaitDialog').modal('hide');
     }
 
@@ -336,12 +335,34 @@
         dataView.endUpdate();
     }
 
+    function reportSettingsDlg() {
+        var contentDiv = $('#settingform div');
+        contentDiv.empty();
+        contentDiv.addClass("controls controls-row")
+        var groupContainer  = $('<div class="container"><div class="row"><label for="groupBy" class="control-label input-group">Group By</label></div>')
+                .appendTo(contentDiv);
+        var groupDiv = $('<div/>', {
+            class: 'btn-group',
+            "data-toggle": 'buttons',
+            title: 'GroupBy Settings',
+            id: 'GroupBySettings'
+        }).appendTo(groupContainer);
+
+        $.each(Dashboard.PlotInfo.Group, function (idx, group) {
+            groupDiv.append($('<label class="btn btn-default"><input type="radio" name="groupBy" value="' + idx + '">' + group + '</label>'))
+        })
+
+        $.each(Dashboard.PlotInfo.Plots, function (idx, chartSetting) {
+
+        })
+    }
+
     function updateSettingsDlg() {
         var ignoreList = ['Info', 'Table', 'Dictionary'];
         var contentDiv = $('#settingform div');
         contentDiv.empty();
         var treeRootHtml = $('<div/>', {
-            "class": "tree",
+            class: "tree",
             title: 'Dashboard Settings',
             id: "DashboardGraphSettings"
         }).appendTo(contentDiv);
@@ -382,7 +403,6 @@
             drawVisibleCharts();
             //drawISAreaMultiChart();
             //drawQcFitMultiChart();
-            //drawFocusChart();
         });
     });
 
@@ -412,58 +432,6 @@
             drawVisibleCharts();
         })
     });
-
-    function drawFocusChart() {
-
-        //var data = filterMetaboliteData(Dashboard, 0, 'All', 'ISArea');
-        //data[0].key = "ISArea";
-        var selectedMetabolite = $('#compound').val();
-        var btData = filterMetaboliteData(Dashboard, selectedMetabolite, chartsSettingArr.ratioChart.sampleType, chartsSettingArr.ratioChart.key, chartsSettingArr.ratioChart.groupBy);
-        var qcSampleData = filterMetaboliteData(Dashboard, selectedMetabolite, 'QCsample', chartsSettingArr.ratioChart.key);
-        qcSampleData = $.extend(qcSampleData[0], {color: 'black', slope: 1});
-        btData = btData.concat(qcSampleData);
-
-        if (focusChart !== undefined) {  // exist update it instead
-            var chart = focusChart;
-            var minMax = getMinMax(btData);
-            chart.forceY([(minMax.minY - minMax.minY * .5 ), (minMax.maxY + minMax.maxY * .5 )]);
-            chart.update();
-            d3.select('#chart svg')
-                    .datum(btData)
-                    .transition().duration(500)
-                    .call(chart);
-        } else {
-            nv.addGraph(function () {
-                var chart = nv.models.scatterWithFocusChart();
-
-                chart.xAxis
-                        .tickFormat(d3.format('d'));
-                chart.x2Axis
-                        .tickFormat(d3.format('d'));
-
-                chart.yAxis
-                        .tickFormat(d3.format(',.02f'));
-                chart.y2Axis
-                        .tickFormat(d3.format(',.2f'));
-
-                chart.scatter.sizeDomain([100, 100])
-                        .sizeRange([100, 100]);
-
-                chart.scatter2.sizeDomain([100, 100])
-                        .sizeRange([100, 100]);
-                var minMax = getMinMax(btData);
-                chart.forceY([(minMax.minY - minMax.minY * .5 ), (minMax.maxY + minMax.maxY * .5 )]);
-                d3.select('#chart svg')
-                        .datum(btData)
-                        .transition().duration(250)
-                        .call(chart);
-
-                nv.utils.windowResize(chart.update);
-                focusChart = chart;
-                return chart;
-            });
-        }
-    }
 </script>
 
 <div class="tabbable tabs-left">
@@ -472,7 +440,7 @@
         <li><a href="#profile" data-toggle="tab">ISTD and RT outliers</a></li>
         <li><a href="#messages" data-toggle="tab">PCA outlining points</a></li>
         <li><a href="#settings" data-toggle="tab">Linearity</a></li>
-        <li><a href="#contact" data-toggle="tab">Calibrant Correction</a></li>
+        <li><a href="#contact" data-toggle="tab">Calibrant Correlation</a></li>
         <li><a href="#contact1" data-toggle="tab">Blanks Effects</a></li>
     </ul>
 
@@ -574,11 +542,11 @@
             </div>
 
             %{--<div class="navbar affix-top" data-spy="affix" data-offset-top="250">--}%
-                %{--<div class="navbar-inner">--}%
-                    %{--<div class="container">--}%
-                        %{--<div><svg id="mainLegend"></svg></div>--}%
-                    %{--</div>--}%
-                %{--</div>--}%
+            %{--<div class="navbar-inner">--}%
+            %{--<div class="container">--}%
+            %{--<div><svg id="mainLegend"></svg></div>--}%
+            %{--</div>--}%
+            %{--</div>--}%
             %{--</div>--}%
 
             <div id="DashboardChartArea"></div>
