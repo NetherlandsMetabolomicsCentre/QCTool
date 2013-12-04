@@ -30,7 +30,8 @@ import groovy.json.JsonSlurper
                     qcData.Tables.Column.each { column ->
 
                         def currentHeader = column['Header'][headerLevel]
-                        if (levelHeaderIdx == 0 || currentHeader.trim() != ''){
+                        //if (levelHeaderIdx == 0 || currentHeader.trim() != ''){
+                        if (levelHeaderIdx == 0 || currentHeader != ''){
 
                             // a new header starts
                             levelHeaderIdx++
