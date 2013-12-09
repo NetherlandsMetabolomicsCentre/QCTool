@@ -48,7 +48,7 @@ import groovy.json.JsonSlurper
                     headerStructure[headerLevel] = levelHeaders
                 }
 
-                out << '<table style="width:100%;">'
+                out << '<table class="table table-hover">'
 
                 // inject the header
                 headerStructure.each { level, header ->

@@ -333,18 +333,6 @@ function makeSubGroup(alreadyGroupedObj, groupByArr) {
     return groups;
 }
 
-function indexDataStream(vectorX, vectorY) {
-    /*
-     if (vectorX.length != vectorY.length) {
-     console.error("Data X and Y does not correspond to same length!", vectorX.length, vectorY.length);
-     return
-     }
-     */
-    return vectorY.map(function (yd, i) {
-        return {x: vectorX[i], y: yd }
-    });
-}
-
 function variance(x) {
     var n = x.length;
     if (n < 1) return NaN;
@@ -386,17 +374,6 @@ function updateGraph(data, setting, chartOptions) {
 
 }
 
-Event.subscribe = function (args) {
-    if (args) {
-        d3.map(args).forEach((function (key, value) {
-            if (typeof this[key] === "function") {
-                this[key](value);
-            }
-        }).bind(this));
-    }
-    return this;
-};
-
 function updateStates(newState) {
     //console.log('newState?', newState);
     d3.map(Dashboard.PlotInfo.Plots).forEach((function (key, value) {
@@ -421,6 +398,7 @@ function removeY2AxisGridLines() {
 }
 
 function highlightPoint(element) {
+    console.log(element)
     $.each(Dashboard.PlotInfo.Plots, function (idx, chartSetting) {
         if (chartSetting.visible) {
             var id = chartSetting.chartObject.id();
@@ -431,7 +409,7 @@ function highlightPoint(element) {
 //            d3.select(".nv-chart-" + id).filter(function (d, i) {
 //                console.log(d, i)
 //            })
-            d3.select(".nv-chart-" + id).selectAll('.nv-series').filter(function (d, i) {
+            d3.select(".nv-chart-" + id).selectAll('.nv-series').filter(function(d) { return !d.disabled }).filter(function (d, i) {
                 if (d.key == element.series.key) {
                     seriesIdx = i;
                     d.values.filter(function (point, index) {
@@ -444,6 +422,7 @@ function highlightPoint(element) {
                     return true
                 }
             })
+            console.log(id,seriesIdx,pointIdx)
             if (pointIdx != undefined && seriesIdx != undefined) {
                 //chartSetting.chartObject.scatter ? chartSetting.chartObject.scatter.highlightPoint(seriesIdx, pointIdx, true) : chartSetting.chartObject.highlightPoint(seriesIdx, pointIdx, true)
                 d3.select(".nv-chart-" + id + " .nv-series-" + seriesIdx + " .nv-point-" + pointIdx).classed("hover", true);

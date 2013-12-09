@@ -463,7 +463,7 @@
             <a href="#advancedSettings" role="button" data-toggle="modal"
                class="btn btn-warning pull-right">Settings</a>
 
-            <div id="htmlMetaboliteTable">
+            <div id="htmlMetaboliteTable" style="overflow: auto; width:90%; height:350px;">
                 <report:metaboliteTable qcData="${qcData}" />
             </div>
             <!--

@@ -174,7 +174,7 @@ nv.models.multiChart = function () {
             var gEnter = wrap.enter().append('g').attr('class', 'nvd3 nv-wrap multiChart nv-chart-' +id).append('g');
 
             // background for pointer events
-            //gEnter.append('rect').attr('class', 'nvd3 nv-background');
+            gEnter.append('rect').attr('class', 'nvd3 nv-background');
 
             gEnter.append('g').attr('class', 'nv-x nv-axis');
             gEnter.append('g').attr('class', 'y1 nv-y nv-axis');
@@ -191,7 +191,7 @@ nv.models.multiChart = function () {
 
             var g = wrap.select('g');
 
-           // g.select("rect").attr("width",availableWidth).attr("height",availableHeight);
+           g.select("rect").attr("width",availableWidth).attr("height",availableHeight);
 
             if (showLegend) {
                 legend.width(availableWidth);
