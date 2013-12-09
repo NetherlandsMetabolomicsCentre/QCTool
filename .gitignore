@@ -15,4 +15,3 @@ target
 /out
 .DS_Store
 
-web-app/js/nvd3/src/models/modifyMultiBar.js

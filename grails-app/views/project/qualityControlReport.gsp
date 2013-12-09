@@ -338,15 +338,17 @@
     function reportSettingsDlg() {
         var contentDiv = $('#settingform div');
         contentDiv.empty();
-        contentDiv.addClass("controls controls-row")
-        var groupContainer  = $('<div class="container"><div class="row"><label for="groupBy" class="control-label input-group">Group By</label></div>')
+        //contentDiv.addClass("controls controls-row")
+        var groupContainer  = $('<div class="container"></div>')
                 .appendTo(contentDiv);
+        var groupRow = $('<div class="row"><label for="groupBy" class="control-label input-group">Group By</label></div>')
+                .appendTo(groupContainer)
         var groupDiv = $('<div/>', {
             class: 'btn-group',
-            "data-toggle": 'buttons',
+            'data-toggle': 'buttons',
             title: 'GroupBy Settings',
             id: 'GroupBySettings'
-        }).appendTo(groupContainer);
+        }).appendTo(groupRow);
 
         $.each(Dashboard.PlotInfo.Group, function (idx, group) {
             groupDiv.append($('<label class="btn btn-default"><input type="radio" name="groupBy" value="' + idx + '">' + group + '</label>'))

@@ -411,6 +411,15 @@ function updateStates(newState) {
 //    Dashboard.PlotInfo.Plots[0].chartObject.update();
 }
 
+function removeY2AxisGridLines() {
+    d3.selectAll('.y2.nv-y.nv-axis').filter(function (d, i) {
+        return (d.filter(function (t) {
+            return t.yAxis == 2
+        }).length > 0) ? true : false
+
+    }).selectAll("line").remove()
+}
+
 function highlightPoint(element) {
     $.each(Dashboard.PlotInfo.Plots, function (idx, chartSetting) {
         if (chartSetting.visible) {
@@ -419,9 +428,9 @@ function highlightPoint(element) {
             d3.selectAll(".nv-chart-" + id + " .nv-point.hover").classed("hover", false);
             //chartSetting.chartObject.scatter ? chartSetting.chartObject.scatter.clearHighlights() : chartSetting.chartObject.clearHighlights()
             var pointIdx = undefined, seriesIdx = undefined;
-            d3.select(".nv-chart-" + id).filter(function (d, i) {
-                console.log(d, i)
-            })
+//            d3.select(".nv-chart-" + id).filter(function (d, i) {
+//                console.log(d, i)
+//            })
             d3.select(".nv-chart-" + id).selectAll('.nv-series').filter(function (d, i) {
                 if (d.key == element.series.key) {
                     seriesIdx = i;
