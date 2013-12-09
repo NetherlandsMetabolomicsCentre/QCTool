@@ -42,8 +42,8 @@ grails.project.dependency.resolution = {
 
     plugins {
         runtime ":hibernate:$grailsVersion"
-        runtime ":jquery:1.10.2"
-        runtime ":jquery-ui:1.8.24"
+        runtime ":jquery:1.10.2.2"
+        runtime ":jquery-ui:1.10.3"
         runtime ":resources:1.2.1"
         runtime ":console:1.2"
         runtime ":excel-import:1.0.0"

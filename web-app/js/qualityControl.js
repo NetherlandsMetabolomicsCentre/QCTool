@@ -409,20 +409,22 @@ function highlightPoint(element) {
 //            d3.select(".nv-chart-" + id).filter(function (d, i) {
 //                console.log(d, i)
 //            })
-            d3.select(".nv-chart-" + id).selectAll('.nv-series').filter(function(d) { return !d.disabled }).filter(function (d, i) {
-                if (d.key == element.series.key) {
-                    seriesIdx = i;
-                    d.values.filter(function (point, index) {
-                        if (element.point.originalPos == point.originalPos) {
-                            pointIdx = index;
-                            return true
-                        }
-                    })
+            d3.select(".nv-chart-" + id).selectAll('.nv-series').filter(function (d) {
+                return !d.disabled
+            }).filter(function (d, i) {
+                    if (d.key == element.series.key) {
+                        seriesIdx = i;
+                        d.values.filter(function (point, index) {
+                            if (element.point.originalPos == point.originalPos) {
+                                pointIdx = index;
+                                return true
+                            }
+                        })
 
-                    return true
-                }
-            })
-            console.log(id,seriesIdx,pointIdx)
+                        return true
+                    }
+                })
+            console.log(id, seriesIdx, pointIdx)
             if (pointIdx != undefined && seriesIdx != undefined) {
                 //chartSetting.chartObject.scatter ? chartSetting.chartObject.scatter.highlightPoint(seriesIdx, pointIdx, true) : chartSetting.chartObject.highlightPoint(seriesIdx, pointIdx, true)
                 d3.select(".nv-chart-" + id + " .nv-series-" + seriesIdx + " .nv-point-" + pointIdx).classed("hover", true);

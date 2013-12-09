@@ -21,7 +21,7 @@
     }
 
     .container {
-        width: 1240px;
+        width: 98%;
     }
 
         /* Wrapper for page content to push down footer */
@@ -83,41 +83,10 @@
 
 <body>
 
-<!-- Part 1: Wrap all page content here -->
-<div id="wrap">
-
-    <!-- Fixed navbar -->
-    <div class="navbar navbar-fixed-top">
-        <div class="navbar-inner">
-            <div class="container">
-                <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <g:link controller="project" action="index" class="brand">QCTool</g:link>
-                <div class="nav-collapse collapse">
-                    <ul class="nav">
-                        <li><g:link controller="project" action="index">Projects</g:link></li>
-                    </ul>
-                </div><!--/.nav-collapse -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Begin page content -->
     <div class="container">
         <g:layoutBody/>
     </div>
 
-    <div id="push"></div>
-</div>
-
-<div id="footer">
-    <div class="container">
-        <center><p>&copy; NetherlandsMetabolomicsCentre (NMC) 2009-${Calendar.instance.get(Calendar.YEAR)}</p></center>
-    </div>
-</div>
 <g:javascript library="jquery"/>
 <script src="${resource(dir: 'js/', file: 'bootstrap.min.js')}"></script>
 <g:javascript library="application"/>

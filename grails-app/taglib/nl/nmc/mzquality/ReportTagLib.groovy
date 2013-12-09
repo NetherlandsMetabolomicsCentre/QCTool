@@ -61,7 +61,7 @@ import groovy.json.JsonSlurper
 
                 // inject the actual idata
                 rows.times { rowIdx ->
-                    out << '<tr>'
+                    out << '<tr onClick="tableRowClicked(\''+ qcData.Tables.Column[0]['Data'][rowIdx] +'\')">'
                         columns.times { colIdx ->
                             // data is passed as a list sometimes, then we just concat all values :)
                             def cellValue = qcData.Tables.Column[colIdx]['Data'][rowIdx].collect { it }.join('')
