@@ -323,11 +323,12 @@ function makeSubGroup(alreadyGroupedObj, groupByArr) {
                 return false
             }
         });
-        groups.push({
-            key: currentGroup,
-            values: g,
-            originalPos: pos
-        });
+        if (g.length > 0)
+            groups.push({
+                key: currentGroup,
+                values: g,
+                originalPos: pos
+            });
     });
 
     return groups;
@@ -379,7 +380,7 @@ function updateStates(newState) {
     d3.map(Dashboard.PlotInfo.Plots).forEach((function (key, value) {
         if (typeof value.chartObject === "function") {
             value.chartObject.dispatch.changeState(newState);
-            value.chartObject.update();
+            //value.chartObject.update();
         }
     }));
 
@@ -597,7 +598,8 @@ function drawGraph(data, setting, chartOptions, eventFunc) {
 
 function drawVisibleCharts(extent) {
     var selectedMetabolite = $('#compound').val();
-    var selectedGroup = Dashboard.PlotInfo.Group[0];
+    var selectedGroupIdx = $('input[name=groupBy]:checked', '#settingform').val()
+    var selectedGroup = Dashboard.PlotInfo.Group[selectedGroupIdx ? selectedGroupIdx : 0];
     $.each(Dashboard.PlotInfo.Plots, function (idx, chartSetting) {
             if (chartSetting.visible == undefined)
                 chartSetting = $.extend(chartSetting, {visible: true});

@@ -187,9 +187,6 @@
     <g:if test="${session.qualityJson}">
     $(function () {
         $('#pleaseWaitDialog').modal('show')
-        $("#compound").change(function () {
-            drawVisibleCharts()
-        });
     });
     <g:remoteFunction controller="quality" action="remoteData" onSuccess="callbackGrid(data)"></g:remoteFunction>
     </g:if>
@@ -230,56 +227,68 @@
         //contentDiv.addClass("controls controls-row")
         var groupContainer = $('<div class="container"></div>')
                 .appendTo(contentDiv);
-        var groupRow = $('<div class="row"><label for="groupBy" class="control-label input-group">Group By</label></div>')
+        var groupRow = $('<label for="groupBy" class="control-label input-group">Group By</label>')
                 .appendTo(groupContainer)
         var groupDiv = $('<div/>', {
             class: 'btn-group',
-            'data-toggle': 'buttons',
+            'data-toggle': 'buttons-radio',
             title: 'GroupBy Settings',
             id: 'GroupBySettings'
         }).appendTo(groupRow);
-
+        var row;
         $.each(Dashboard.PlotInfo.Group, function (idx, group) {
-            groupDiv.append($('<label class="btn btn-default"><input type="radio" name="groupBy" value="' + idx + '">' + group + '</label>'))
+            var radioBtn = $('<input type="radio" name="groupBy" value="' + idx + '">')
+            radioBtn.prop('checked', idx == 0 ? true : false)
+            if (idx % 4 == 0)
+                row = $('<div class="row-fluid"></div>').appendTo(groupDiv)
+            row.append($('<label class="btn btn-default">' + group + '</label>').append(radioBtn))
         })
 
         $.each(Dashboard.PlotInfo.Plots, function (idx, chartSetting) {
-
+            var chartId = 'show' + chartSetting.Title.hashCode();
+            contentDiv.append($('<label class="checkbox"><input type="checkbox" id="' + chartId + '" checked> ' + chartSetting.Title + '</label>'))
         })
     }
-
+    // register events
     $(function () {
+        $("#compound").change(function () {
+            drawVisibleCharts()
+        });
+
         $("#settingform").submit(function (event) {
             event.preventDefault();
-            $("#settingform input").each(function (idx, checkbox) {
-                switch (checkboxs.id) {
-                    case "someID" :
-                        checkbox.checked ? true : false;
-                        break;
-                    default :
-                        //reset default here
-                        break;
-                }
-            });
+            var checkboxs = $("#settingform input[type='checkbox']")
+            $.each(Dashboard.PlotInfo.Plots, function (idx, chartSetting) {
+                var chartId = 'show' + chartSetting.Title.hashCode();
+                checkboxs.each(function (idx, checkbox) {
+                    if (checkbox.id == chartId) {
+                        chartSetting.visible = checkbox.checked ? true : false;
+                    }
+                });
+            })
             $('#advancedSettings').modal('hide');
             drawVisibleCharts();
-        })
+        });
+
+        $('#htmlMetaboliteTable table').on('click', 'tbody tr', function(event) {
+            $(this).addClass('error').siblings().removeClass('error');
+        });
     });
 
     function tableRowClicked(name) {
         $("#compound option").filter(function () {
+            return $(this).text() == name;
         }).prop('selected', true);
         drawVisibleCharts();
     }
 </script>
 
 <g:if test="${session.qualityJson}">
-
+    <g:link action="index" params="['renewJson': true]" role="button"
+            class="btn btn-primary pull-right">Upload new file</g:link>
     <a href="#advancedSettings" role="button" data-toggle="modal"
        class="btn btn-warning pull-right">Settings</a>
-
-    <H1>Report</H1>
-    <g:link action="index" params="['renewJson': true]">upload new json file</g:link>
+    <H4>Quality Control Report</H4>
 
     <div class="tab-pane fade in active" id="home">
         <table>
@@ -359,7 +368,7 @@
                                         <input type="checkbox" id="showRatioQ" checked> Ratio (QC corrected)
                                     </label>
                                 </div>
-                                <button type="submit" class="btn btn-warning">Save</button>
+                                <button type="submit" class="btn btn-warning">Update Graphs</button>
                             </fieldset>
                         </form>
                     </div>
